@@ -54,6 +54,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
   const [priority, setPriority] = useState<PriorityLevel>(initialQuoteData?.isUrgent ? 'hoa_toc' : 'binh_thuong');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('da_coc_50');
   const [technique, setTechnique] = useState<PrintTechnique>(initialQuoteData?.technique || 'chuyen_nhiet');
+  const [shippingFeeCollected, setShippingFeeCollected] = useState<number>(0);
   const [notes, setNotes] = useState('');
 
   // Batch names input (Danh sách tên học sinh / thành viên)
@@ -167,8 +168,9 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
       status: 'dang_thiet_ke',
       priority,
       paymentStatus,
-      totalAmount: total,
+      totalAmount: total + (shippingFeeCollected || 0),
       depositAmount: deposit,
+      shippingFeeCollected: shippingFeeCollected > 0 ? shippingFeeCollected : undefined,
       createdAt: new Date().toISOString(),
       deadline: `${deadline}T17:00:00Z`,
       shippingAddress: shippingAddress || 'Nhận trực tiếp tại xưởng in',
@@ -366,6 +368,20 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
                       <option value="da_tat_toan">Đã tất toán 100%</option>
                       <option value="chua_coc">Chưa cọc (Chờ duyệt)</option>
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-600 dark:text-slate-300 mb-1 flex items-center justify-between">
+                      <span>Thu tiền Ship của khách:</span>
+                      <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">Lưu: Ship</span>
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="VD: 35000 (0 nếu freeship)"
+                      value={shippingFeeCollected || ''}
+                      onChange={(e) => setShippingFeeCollected(Number(e.target.value))}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 outline-none text-slate-800 dark:text-slate-200"
+                    />
                   </div>
                 </div>
 

@@ -128,6 +128,7 @@ export interface Order {
   assignedMachineId?: string;
   items: OrderItem[];
   shippingAddress: string;
+  shippingFeeCollected?: number; // Tiền ship thu của khách (ghi chú Ship)
   productionNotes?: string;
   proofDesign?: ProofDesignInfo;
   shippingInfo?: ShippingTrackingInfo;
@@ -293,6 +294,7 @@ export type FinancialCategory =
   | 'thu_tien_coc'           // Thu tiền cọc đơn hàng (50% hoặc tùy chọn)
   | 'thu_tat_toan'           // Thu tất toán hoàn tất đơn / COD
   | 'thu_cong_no'            // Thu công nợ gối đầu khách hàng B2B/Đại lý
+  | 'thu_tien_ship_khach'    // Thu tiền ship giao hàng của khách (Quỹ Ship)
   | 'thu_khac'               // Thu nhập khác
   // Chi (Expenses)
   | 'chi_nhap_phoi'          // Chi mua phôi quà tặng (Ly sứ, áo thun, móc khóa...)
@@ -303,6 +305,11 @@ export type FinancialCategory =
   | 'chi_bao_tri_may'        // Bảo trì, thay thế linh kiện máy ép / đầu phun
   | 'chi_van_chuyen_ship'    // Cước vận chuyển Ahamove, GHTK, xe tải
   | 'chi_hao_hut_in'         // Chi phí bù phôi hỏng do lỗi in ấn
+  | 'chi_chia_hu_dau_tu'     // Trích hũ Quỹ Đầu Tư (10%)
+  | 'chi_chia_hu_dien'       // Trích hũ Quỹ Tiền Điện (10%)
+  | 'chi_chia_hu_chua'       // Trích hũ Dâng Chúa (10%)
+  | 'chi_chia_loi_nhuan_dung'// Chia lợi nhuận nhân viên Dung
+  | 'chi_chia_loi_nhuan_nhat'// Chia lợi nhuận nhân viên Nhật
   | 'chi_khac';              // Chi phí vận hành khác
 
 export type FinancialPaymentMethod = 'tien_mat' | 'chuyen_khoan';

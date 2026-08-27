@@ -57,6 +57,7 @@ import {
   getFinancialCategoryInfo,
   getPaymentStatusInfo,
 } from '../utils/formatters';
+import { FinancialJarSplitView } from './FinancialJarSplitView';
 
 interface FinanceAnalyticsViewProps {
   orders: Order[];
@@ -71,7 +72,7 @@ interface FinanceAnalyticsViewProps {
   onOpenVietQrModal: (order: Order, amount?: number) => void;
 }
 
-type FinanceTab = 'overview' | 'vouchers' | 'receivables' | 'product_profit' | 'scrap_analytics';
+type FinanceTab = 'overview' | 'profit_jars' | 'vouchers' | 'receivables' | 'product_profit' | 'scrap_analytics';
 type TimePeriod = 'all' | 'today' | 'this_week' | 'this_month' | 'last_month';
 
 export const FinanceAnalyticsView: React.FC<FinanceAnalyticsViewProps> = ({
@@ -542,6 +543,20 @@ export const FinanceAnalyticsView: React.FC<FinanceAnalyticsViewProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveSubTab('profit_jars')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+              activeSubTab === 'profit_jars'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <PieIcon className="w-4 h-4" /> Chia Hũ Tài Chính & Lợi Nhuận
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+              Mới
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('vouchers')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
               activeSubTab === 'vouchers'
@@ -804,6 +819,25 @@ export const FinanceAnalyticsView: React.FC<FinanceAnalyticsViewProps> = ({
                   </div>
                   <span className="text-base">{formatCurrency(financialMetrics.netProfit)}</span>
                 </div>
+
+                {/* Quick Link to 6 Financial Jars Allocation */}
+                <div className="mt-4 p-3.5 bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-blue-50/90 dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-800 flex items-center justify-between gap-3">
+                  <div>
+                    <h4 className="font-bold text-xs text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+                      <PieIcon className="w-3.5 h-3.5 text-blue-600" />
+                      Phân Bổ Hũ Tài Chính & Lợi Nhuận (Đầu tư, Điện, Chúa, Dung, Nhật)
+                    </h4>
+                    <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80 mt-0.5">
+                      Tự động trích 30% quỹ cố định & chia 70% lợi nhuận còn lại kèm quản lý quỹ Ship.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveSubTab('profit_jars')}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs flex items-center gap-1 shrink-0 transition-colors shadow-xs"
+                  >
+                    Xem Bảng Chia Hũ <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -971,6 +1005,20 @@ export const FinanceAnalyticsView: React.FC<FinanceAnalyticsViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* TAB: PHÂN BỔ HŨ TÀI CHÍNH & CHIA LỢI NHUẬN */}
+      {/* ---------------------------------------------------- */}
+      {activeSubTab === 'profit_jars' && (
+        <FinancialJarSplitView
+          orders={orders}
+          products={products}
+          defectLogs={defectLogs}
+          financialVouchers={financialVouchers}
+          onAddVoucher={onAddVoucher}
+          onSelectOrder={onSelectOrder}
+        />
       )}
 
       {/* ---------------------------------------------------- */}

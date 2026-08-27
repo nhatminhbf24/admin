@@ -330,6 +330,8 @@ export const getFinancialCategoryInfo = (category: string) => {
       return { label: 'Thu Tất Toán / Giao Hàng COD', type: 'thu', badge: 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800' };
     case 'thu_cong_no':
       return { label: 'Thu Công Nợ B2B / Đại Lý', type: 'thu', badge: 'bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800' };
+    case 'thu_tien_ship_khach':
+      return { label: 'Thu Tiền Ship Khách Hàng (Quỹ Ship)', type: 'thu', badge: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800' };
     case 'thu_khac':
       return { label: 'Khoản Thu Khác', type: 'thu', badge: 'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/60 dark:text-green-300 dark:border-green-800' };
     // Chi
@@ -349,6 +351,16 @@ export const getFinancialCategoryInfo = (category: string) => {
       return { label: 'Cước Vận Chuyển / Ship Đơn', type: 'chi', badge: 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800' };
     case 'chi_hao_hut_in':
       return { label: 'Bù Hao Hụt Hỏng Phôi In', type: 'chi', badge: 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800' };
+    case 'chi_chia_hu_dau_tu':
+      return { label: 'Trích Quỹ Đầu Tư (10%)', type: 'chi', badge: 'bg-violet-100 text-violet-800 border-violet-300 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800' };
+    case 'chi_chia_hu_dien':
+      return { label: 'Trích Quỹ Tiền Điện (10%)', type: 'chi', badge: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800' };
+    case 'chi_chia_hu_chua':
+      return { label: 'Trích Quỹ Dâng Chúa (10%)', type: 'chi', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800' };
+    case 'chi_chia_loi_nhuan_dung':
+      return { label: 'Chia Lợi Nhuận - Dung', type: 'chi', badge: 'bg-pink-100 text-pink-800 border-pink-300 dark:bg-pink-950/60 dark:text-pink-300 dark:border-pink-800' };
+    case 'chi_chia_loi_nhuan_nhat':
+      return { label: 'Chia Lợi Nhuận - Nhật', type: 'chi', badge: 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800' };
     case 'chi_khac':
     default:
       return { label: 'Chi Phí Vận Hành Khác', type: 'chi', badge: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700' };

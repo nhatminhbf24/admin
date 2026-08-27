@@ -705,9 +705,16 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             <div className="p-4 bg-blue-50/60 dark:bg-blue-950/30 rounded-2xl border border-blue-100 dark:border-blue-900 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-slate-500 dark:text-slate-400">Tổng Giá Trị Đơn Hàng:</p>
-                <p className="text-xl font-extrabold text-blue-700 dark:text-blue-400">
-                  {formatCurrency(order.totalAmount)}
-                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-extrabold text-blue-700 dark:text-blue-400">
+                    {formatCurrency(order.totalAmount)}
+                  </span>
+                  {order.shippingFeeCollected && order.shippingFeeCollected > 0 && (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200">
+                      Gồm Ship: {formatCurrency(order.shippingFeeCollected)} (Lưu: Ship)
+                    </span>
+                  )}
+                </div>
                 <p className="text-slate-600 dark:text-slate-300 mt-0.5">
                   Trạng thái: <strong>{paymentInfo.label}</strong> (Đã cọc {formatCurrency(order.depositAmount)})
                 </p>
