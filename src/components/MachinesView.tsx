@@ -25,11 +25,11 @@ interface MachinesViewProps {
 }
 
 export const MachinesView: React.FC<MachinesViewProps> = ({
-  machines,
+  machines = [],
 }) => {
   const [selectedFilter, setSelectedFilter] = useState<'all' | PrintServiceGroup>('all');
 
-  const filteredMachines = machines.filter((m) => {
+  const filteredMachines = (machines || []).filter((m) => {
     if (selectedFilter !== 'all' && m.serviceGroup !== selectedFilter) return false;
     return true;
   });

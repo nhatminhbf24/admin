@@ -17,38 +17,92 @@ import {
   CheckCircle2,
   Calendar,
   Building2,
-  Phone
+  Phone,
+  AlertTriangle,
+  Timer,
+  FileText,
+  ShieldCheck,
+  Percent,
+  Check,
+  ChevronRight
 } from 'lucide-react';
-import { Order, GiftProduct, Machine } from '../types';
-import { formatCurrency, formatNumber, formatDate, getOrderStatusInfo, getPriorityInfo, getPaymentStatusInfo } from '../utils/formatters';
+import { Order, GiftProduct, Machine, DefectLog } from '../types';
+import { formatCurrency, formatNumber, formatDate, formatDateTime, getOrderStatusInfo, getPriorityInfo, getPaymentStatusInfo, getProofStatusInfo } from '../utils/formatters';
 import { PRINT_TECHNIQUES_INFO } from '../data/mockData';
 
 interface DashboardViewProps {
   orders: Order[];
   products: GiftProduct[];
   machines: Machine[];
+  defectLogs?: DefectLog[];
   onSelectOrder: (order: Order) => void;
   onNavigateTab: (tab: any) => void;
   onOpenNewOrder: () => void;
+  onPrintJobTicket?: (order: Order) => void;
+  onOpenDefectModal?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
-  orders,
-  products,
-  machines,
+  orders = [],
+  products = [],
+  machines = [],
+  defectLogs = [],
   onSelectOrder,
   onNavigateTab,
   onOpenNewOrder,
+  onPrintJobTicket,
+  onOpenDefectModal,
 }) => {
   const [revenuePeriod, setRevenuePeriod] = useState<'week' | 'month'>('week');
 
   // Stats
-  const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
-  const activeOrdersCount = orders.filter((o) => o.status !== 'hoan_tat' && o.status !== 'huy_don').length;
-  const inPrintCount = orders.filter((o) => o.status === 'dang_in').length;
-  const totalStockItems = products.reduce((sum, p) => sum + p.stockQuantity, 0);
-  const lowStockProducts = products.filter((p) => p.stockQuantity <= p.minStockAlert);
-  const activeMachines = machines.filter((m) => m.status === 'dang_in').length;
+  const totalRevenue = (orders || []).reduce((sum, o) => sum + (o?.totalAmount || 0), 0);
+  const activeOrders = (orders || []).filter((o) => o.status !== 'hoan_tat' && o.status !== 'huy_don');
+  const activeOrdersCount = activeOrders.length;
+  const inPrintCount = (orders || []).filter((o) => o.status === 'dang_in').length;
+  const totalStockItems = (products || []).reduce((sum, p) => sum + (p?.stockQuantity || 0), 0);
+  const lowStockProducts = (products || []).filter((p) => p.stockQuantity <= p.minStockAlert);
+  const activeMachines = (machines || []).filter((m) => m.status === 'dang_in').length;
+
+  // 1. DEADLINE ALERTS CALCULATION (Cảnh báo trễ hạn & Đơn hỏa tốc < 24h)
+  const now = new Date().getTime();
+  const deadlineAlertOrders = activeOrders
+    .map((order) => {
+      const deadlineTime = new Date(order.deadline).getTime();
+      const diffHours = (deadlineTime - now) / (1000 * 60 * 60);
+      return {
+        ...order,
+        diffHours,
+        isOverdue: diffHours < 0,
+        isUrgent24h: diffHours >= 0 && diffHours <= 24,
+      };
+    })
+    .filter((o) => o.isOverdue || o.isUrgent24h || o.priority === 'hoa_toc' || o.priority === 'gap')
+    .sort((a, b) => a.diffHours - b.diffHours);
+
+  // 2. SCRAP RATE & DEFECT METRICS (Tỷ lệ Hao hụt & Lỗi in xưởng)
+  const totalProducedItems = orders.reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0);
+  const totalScrappedItems = defectLogs.reduce((sum, d) => sum + d.quantityScrapped, 0);
+  const totalCostLoss = defectLogs.reduce((sum, d) => sum + d.estimatedCostLoss, 0);
+  const scrapRate = totalProducedItems > 0 
+    ? ((totalScrappedItems / (totalProducedItems + totalScrappedItems)) * 100).toFixed(1)
+    : '0.0';
+
+  // Group defect by reasons
+  const defectReasonsCount: Record<string, { label: string; count: number; cost: number; color: string }> = {
+    chay_mau_nhiet: { label: 'Cháy màu / Quá nhiệt ép', count: 0, cost: 0, color: 'bg-rose-500' },
+    lech_tam_khuon: { label: 'Lệch tâm / Lệch bon cắt bế', count: 0, cost: 0, color: 'bg-amber-500' },
+    vo_nut_phoi: { label: 'Vỡ ly / Nứt đá tự nhiên', count: 0, cost: 0, color: 'bg-purple-500' },
+    lem_muc_bot_khi: { label: 'Lem mực / Bọt khí / Tróc men', count: 0, cost: 0, color: 'bg-blue-500' },
+    loi_file_khach: { label: 'Sai file / Nhầm tên học sinh', count: 0, cost: 0, color: 'bg-slate-500' },
+  };
+
+  defectLogs.forEach((log) => {
+    if (defectReasonsCount[log.reason]) {
+      defectReasonsCount[log.reason].count += log.quantityScrapped;
+      defectReasonsCount[log.reason].cost += log.estimatedCostLoss;
+    }
+  });
 
   // Chart data for revenue (7 days)
   const revenueData = [
@@ -63,33 +117,35 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const maxRevenue = Math.max(...revenueData.map((d) => d.revenue));
 
-  // Technique distribution
-  const techniqueCounts = {
-    uv: 38,
-    laser: 28,
-    chuyen_nhiet: 16,
-    dtf: 12,
-    ep_kim: 6,
+  const formatCountdown = (diffHours: number) => {
+    if (diffHours < 0) {
+      const overdueH = Math.abs(Math.floor(diffHours));
+      const overdueM = Math.abs(Math.floor((diffHours % 1) * 60));
+      return `Trễ ${overdueH}h ${overdueM}m`;
+    }
+    const h = Math.floor(diffHours);
+    const m = Math.floor((diffHours % 1) * 60);
+    return `Còn ${h}h ${m}m`;
   };
 
   return (
     <div className="space-y-6">
       {/* Top Banner & Fast Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white shadow-lg shadow-blue-500/15">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white shadow-lg shadow-blue-500/15">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-xs">
-              Phiên Bản TailAdmin Pro • Xưởng In Quà Tặng
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-xs">
+              Vận Hành & Sản Xuất Xưởng In Chuyên Nghiệp
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-            Bảng Quản Trị Đơn Hàng & Sản Xuất In Ấn
+            Bảng Quản Trị Đơn Hàng & Điều Phối Xưởng In
           </h1>
           <p className="text-sm text-blue-100 mt-1 max-w-xl">
-            Theo dõi tiến độ đơn hàng quà tặng, công suất máy khắc/in, tồn kho phôi và duyệt bản in theo thời gian thực.
+            Theo dõi tiến độ in ấn, cảnh báo trễ hạn giao 24h, duyệt mockup khách hàng và kiểm soát tỷ lệ hao hụt phôi.
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
           <button
             onClick={() => onNavigateTab('quote_calculator')}
             className="px-4 py-2 text-xs font-semibold bg-white/15 hover:bg-white/25 text-white rounded-xl backdrop-blur-xs transition-colors border border-white/20"
@@ -98,14 +154,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
           <button
             onClick={onOpenNewOrder}
-            className="px-4 py-2 text-xs font-bold bg-white text-blue-700 hover:bg-blue-50 rounded-xl shadow-md transition-all active:scale-95"
+            className="px-4 py-2 text-xs font-bold bg-white text-blue-700 hover:bg-blue-50 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-1.5"
           >
-            + Tiếp Nhận Đơn Mới
+            <Sparkles className="w-4 h-4 text-blue-600" /> + Tiếp Nhận Đơn Mới
           </button>
         </div>
       </div>
 
-      {/* TailAdmin Style 4 Core Metric Cards */}
+      {/* 4 Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Doanh thu */}
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:shadow-md transition-all">
@@ -134,7 +190,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Printer className="w-6 h-6" />
             </div>
             <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400">
-              {inPrintCount} đang in
+              {inPrintCount} đang in máy
             </span>
           </div>
           <div className="mt-4">
@@ -147,317 +203,382 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Card 3: Công suất máy xưởng */}
+        {/* Card 3: Cảnh báo trễ hạn */}
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
-            <div className="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400">
-              <Zap className="w-6 h-6" />
+            <div className="w-11 h-11 rounded-xl bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <Timer className="w-6 h-6" />
             </div>
-            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400">
-              {activeMachines}/{machines.length} Máy chạy
-            </span>
-          </div>
-          <div className="mt-4">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-              98.2%
-            </h3>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
-              Tỷ Lệ Giao Đúng Hạn (On-Time Delivery)
-            </p>
-          </div>
-        </div>
-
-        {/* Card 4: Tồn kho phôi */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <div className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
-              <Package className="w-6 h-6" />
-            </div>
-            {lowStockProducts.length > 0 ? (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
-                <AlertCircle className="w-3 h-3" /> {lowStockProducts.length} phôi sắp hết
+            {deadlineAlertOrders.length > 0 ? (
+              <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 animate-pulse">
+                <AlertTriangle className="w-3.5 h-3.5" /> {deadlineAlertOrders.length} đơn cần ưu tiên
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
-                <CheckCircle2 className="w-3 h-3" /> Tồn kho an toàn
+                <CheckCircle2 className="w-3.5 h-3.5" /> Tiến độ chuẩn
               </span>
             )}
           </div>
           <div className="mt-4">
             <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-              {formatNumber(totalStockItems)} Phôi
+              {deadlineAlertOrders.filter(o => o.isOverdue).length > 0 ? (
+                <span className="text-rose-600">{deadlineAlertOrders.filter(o => o.isOverdue).length} Đơn Trễ</span>
+              ) : (
+                <span>{deadlineAlertOrders.length} Đơn Gấp</span>
+              )}
             </h3>
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
-              Bình giữ nhiệt, cốc sứ, sổ da, bút ký...
+              Hỏa tốc & Đến hạn trong 24h tới
+            </p>
+          </div>
+        </div>
+
+        {/* Card 4: Tỷ lệ Hao hụt phôi (Scrap Rate) */}
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:shadow-md transition-all">
+          <div className="flex items-center justify-between">
+            <div className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
+              <Percent className="w-6 h-6" />
+            </div>
+            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
+              Number(scrapRate) <= 2.5 
+                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' 
+                : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400'
+            }`}>
+              <ShieldCheck className="w-3.5 h-3.5" /> Chuẩn xưởng &lt;2.5%
+            </span>
+          </div>
+          <div className="mt-4">
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              {scrapRate}% <span className="text-xs font-normal text-slate-400">({totalScrappedItems} phôi hỏng)</span>
+            </h3>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+              Tỷ Lệ Hao Hụt & Lỗi Ép Nhiệt
             </p>
           </div>
         </div>
       </div>
 
-      {/* TailAdmin Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Revenue & Cost Chart */}
-        <div className="lg:col-span-2 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+      {/* WIDGET 1: DEADLINE ALERTS (CẢNH BÁO TRỄ HẠN GIAO & ĐƠN HỎA TỐC 24H) */}
+      <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border-2 border-rose-200 dark:border-rose-900/60 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold">
+              <Timer className="w-5 h-5 animate-spin-slow" />
+            </div>
             <div>
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                Biểu Đồ Doanh Thu & Chi Phí Sản Xuất In Ấn
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Thống kê 7 ngày gần nhất (Bao gồm tiền phôi + công in ấn)
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                  Cảnh Báo Trễ Hạn Giao & Đơn Hỏa Tốc (Deadline Countdown)
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white">
+                  {deadlineAlertOrders.length} Đơn khẩn
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Đếm ngược thời gian bàn giao khách hàng. Ưu tiên thợ in ép nhiệt và đóng gói ngay.
               </p>
             </div>
-            <div className="flex items-center gap-4 text-xs font-medium">
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-blue-600" />
-                <span className="text-slate-600 dark:text-slate-300">Doanh thu</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600" />
-                <span className="text-slate-600 dark:text-slate-300">Giá vốn & Mực</span>
-              </div>
-            </div>
           </div>
+          <button
+            onClick={() => onNavigateTab('orders')}
+            className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 self-start sm:self-auto"
+          >
+            Xem Kanban Xưởng <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
-          {/* Interactive SVG / Bar Visualizer */}
-          <div className="h-64 flex items-end justify-between gap-3 pt-6 pb-2 px-2">
-            {revenueData.map((d, idx) => {
-              const revPercent = (d.revenue / maxRevenue) * 100;
-              const costPercent = (d.cost / maxRevenue) * 100;
+        {deadlineAlertOrders.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {deadlineAlertOrders.map((ord) => {
+              const statusInfo = getOrderStatusInfo(ord.status);
+              const priorityInfo = getPriorityInfo(ord.priority);
+              const proofInfo = getProofStatusInfo(ord.proofDesign?.status);
+              const isOverdue = ord.diffHours < 0;
+
               return (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
-                  <div className="w-full flex items-end justify-center gap-1.5 h-48 relative">
-                    {/* Tooltip on hover */}
-                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 dark:bg-slate-800 text-white text-[11px] rounded-lg px-2.5 py-1.5 pointer-events-none z-20 whitespace-nowrap shadow-lg">
-                      <p className="font-bold">{d.day}: {formatCurrency(d.revenue)}</p>
-                      <p className="text-[10px] text-slate-300">{d.orders} đơn hàng</p>
+                <div
+                  key={ord.id}
+                  onClick={() => onSelectOrder(ord)}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer group flex flex-col justify-between ${
+                    isOverdue
+                      ? 'bg-rose-50/70 border-rose-300 dark:bg-rose-950/30 dark:border-rose-900'
+                      : ord.priority === 'hoa_toc'
+                      ? 'bg-amber-50/70 border-amber-300 dark:bg-amber-950/30 dark:border-amber-900'
+                      : 'bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-black text-sm text-slate-900 dark:text-white">
+                          {ord.orderCode}
+                        </span>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${priorityInfo.badge}`}>
+                          {priorityInfo.label}
+                        </span>
+                      </div>
+
+                      {/* Countdown badge */}
+                      <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black flex items-center gap-1 shadow-xs ${
+                        isOverdue
+                          ? 'bg-rose-600 text-white animate-bounce'
+                          : 'bg-amber-500 text-white'
+                      }`}>
+                        <Clock className="w-3 h-3" />
+                        {formatCountdown(ord.diffHours)}
+                      </span>
                     </div>
 
-                    {/* Revenue Bar */}
-                    <div
-                      className="w-1/2 max-w-[28px] bg-gradient-to-t from-blue-700 to-blue-500 rounded-t-lg transition-all duration-500 group-hover:brightness-110"
-                      style={{ height: `${revPercent}%` }}
-                    />
-                    {/* Cost Bar */}
-                    <div
-                      className="w-1/2 max-w-[28px] bg-slate-200 dark:bg-slate-700 rounded-t-lg transition-all duration-500 group-hover:brightness-110"
-                      style={{ height: `${costPercent}%` }}
-                    />
+                    <p className="font-bold text-xs text-slate-800 dark:text-slate-200 line-clamp-1">
+                      {ord.customerCompany || ord.customerName}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                      📦 {ord.items[0]?.productName} (SL: {ord.items[0]?.quantity})
+                    </p>
+
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 text-[10px]">
+                      <span className={`px-2 py-0.5 rounded-md font-bold border ${statusInfo.bg} ${statusInfo.text} ${statusInfo.border}`}>
+                        {statusInfo.label}
+                      </span>
+                      {ord.proofDesign && (
+                        <span className={`px-1.5 py-0.5 rounded-md font-semibold ${proofInfo.badge}`}>
+                          Mockup: {proofInfo.label}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 group-hover:text-blue-600">
-                    {d.day}
-                  </span>
+
+                  <div className="flex items-center justify-between mt-3 pt-2 text-[11px]">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Thợ: <strong className="text-slate-800 dark:text-slate-200">{ord.assignedTechnician?.split(' ')[0] || 'Chưa gán'}</strong>
+                    </span>
+
+                    <div className="flex items-center gap-1.5">
+                      {onPrintJobTicket && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPrintJobTicket(ord);
+                          }}
+                          className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 font-bold hover:text-blue-600 flex items-center gap-1 shadow-2xs text-[10px]"
+                          title="In phiếu lệnh sản xuất"
+                        >
+                          <Printer className="w-3 h-3 text-blue-600" /> In Lệnh
+                        </button>
+                      )}
+                      <span className="text-blue-600 dark:text-blue-400 font-bold group-hover:underline flex items-center">
+                        Xem <ChevronRight className="w-3 h-3" />
+                      </span>
+                    </div>
+                  </div>
                 </div>
               );
             })}
           </div>
-        </div>
-
-        {/* Technique Distribution (Donut & Progress Breakdown) */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
-          <div>
-            <h3 className="font-bold text-base text-slate-900 dark:text-white">
-              Tỷ Trọng Doanh Thu 2 Mảng Sản Xuất
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Phân bổ giữa In Chuyển Nhiệt Quà Tặng & In Ảnh / Nhãn Vở
-            </p>
+        ) : (
+          <div className="p-6 text-center text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
+            <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+            <p className="font-bold text-slate-700 dark:text-slate-300 text-xs">Hiện tại không có đơn nào bị quá hạn hoặc khẩn cấp trong 24h.</p>
+            <p className="text-[11px] text-slate-500">Mọi đơn hàng đều đang tiến hành đúng lịch trình xưởng.</p>
           </div>
-
-          <div className="my-4 space-y-3.5">
-            <div>
-              <div className="flex justify-between text-xs font-semibold mb-1">
-                <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5 font-bold">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> 🔥 In Chuyển Nhiệt (11 Nhóm Phôi)
-                </span>
-                <span className="text-amber-600 dark:text-amber-400 font-bold">62% (Ly sứ, Áo, Móc khóa, Tranh đá)</span>
-              </div>
-              <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-amber-500 rounded-full" style={{ width: '62%' }} />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-xs font-semibold mb-1">
-                <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5 font-bold">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600" /> 📸 In Ảnh & Nhãn Vở Học Sinh
-                </span>
-                <span className="text-blue-600 dark:text-blue-400 font-bold">38% (Nhãn vở, Polaroid, Khung ảnh)</span>
-              </div>
-              <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-600 rounded-full" style={{ width: '38%' }} />
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2 text-[11px]">
-              <div className="p-2 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 text-amber-900 dark:text-amber-300">
-                <span className="font-bold">Top Chuyển Nhiệt:</span> Ly sứ quai tim, Móc khóa mica 2 mặt, Tranh đá vát viền
-              </div>
-              <div className="p-2 rounded-lg bg-blue-50/60 dark:bg-blue-950/30 text-blue-900 dark:text-blue-300">
-                <span className="font-bold">Top In Ảnh:</span> Set 36 nhãn vở bế demi Hologram, Ảnh Polaroid 6x9
-              </div>
-            </div>
-          </div>
-
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs text-slate-500 dark:text-slate-400">
-            💡 <strong>Mẹo xưởng:</strong> Mùa tựu trường (Tháng 8-9) doanh thu nhãn vở & ảnh bé tăng 300%. Nên chuẩn bị sẵn cuộn decal bóc dán và màng Hologram 7 màu.
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Workshop Machines & Urgent Orders Grid */}
+      {/* WIDGET 2: SCRAP RATE & DEFECT LOG BREAKDOWN (TỶ LỆ HAO HỤT & LỖI IN XƯỞNG) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Live Production Orders */}
-        <div className="lg:col-span-2 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-          <div className="flex items-center justify-between mb-4">
+        {/* Scrap Rate Details */}
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+          <div className="flex items-center justify-between">
             <div>
               <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                <Printer className="w-4 h-4 text-blue-600" /> Đơn Hàng Đang Chạy Trong Xưởng
+                <Flame className="w-4 h-4 text-rose-500" /> Tỷ Lệ Hao Hụt & Lỗi In Xưởng (Scrap Rate)
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Ưu tiên theo mức độ hỏa tốc và hạn giao hàng
+                Kiểm soát chất lượng mực, nhiệt độ ép & tay nghề thợ
               </p>
             </div>
-            <button
-              onClick={() => onNavigateTab('orders')}
-              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-            >
-              Xem tất cả đơn <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            {onOpenDefectModal && (
+              <button
+                onClick={onOpenDefectModal}
+                className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold transition-all border border-rose-200 dark:border-rose-900 shrink-0"
+              >
+                + Báo Lỗi/Bù Phôi
+              </button>
+            )}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
-                <tr>
-                  <th className="pb-2.5 font-semibold">Mã Đơn & Khách Hàng</th>
-                  <th className="pb-2.5 font-semibold">Sản Phẩm & Số Lượng</th>
-                  <th className="pb-2.5 font-semibold">Công Đoạn In</th>
-                  <th className="pb-2.5 font-semibold">Hạn Giao</th>
-                  <th className="pb-2.5 font-semibold text-right">Hành Động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {orders.slice(0, 4).map((ord) => {
-                  const statusInfo = getOrderStatusInfo(ord.status);
-                  const priorityInfo = getPriorityInfo(ord.priority);
-                  return (
-                    <tr
-                      key={ord.id}
-                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer"
-                      onClick={() => onSelectOrder(ord)}
-                    >
-                      <td className="py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900 dark:text-white">
-                            {ord.orderCode}
-                          </span>
-                          {ord.priority !== 'binh_thuong' && (
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${priorityInfo.badge}`}>
-                              {priorityInfo.label}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                          {ord.customerCompany || ord.customerName}
-                        </p>
-                      </td>
-                      <td className="py-3">
-                        <p className="font-medium text-slate-800 dark:text-slate-200 line-clamp-1">
-                          {ord.items[0]?.productName}
-                        </p>
-                        <span className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold">
-                          {ord.items[0]?.quantity} chiếc
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${statusInfo.bg} ${statusInfo.text} ${statusInfo.border}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot}`} />
-                          {statusInfo.label}
-                        </span>
-                      </td>
-                      <td className="py-3 text-slate-600 dark:text-slate-400">
-                        {formatDate(ord.deadline)}
-                      </td>
-                      <td className="py-3 text-right">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSelectOrder(ord);
-                          }}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors"
-                          title="Xem chi tiết lệnh in"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Tỷ lệ hao hụt hiện tại</p>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className="text-3xl font-black text-slate-900 dark:text-white">{scrapRate}%</span>
+                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                  Mục tiêu &le; 2.5%
+                </span>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-slate-500 dark:text-slate-400">Thiệt hại phôi hỏng</p>
+              <p className="text-base font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                -{formatCurrency(totalCostLoss)}
+              </p>
+            </div>
+          </div>
+
+          {/* Breakdown Bars */}
+          <div className="space-y-3 pt-1">
+            <p className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Phân Loại Nguyên Nhân Hỏng Phôi:
+            </p>
+            {Object.entries(defectReasonsCount).map(([key, item]) => {
+              const percent = totalScrappedItems > 0 ? (item.count / totalScrappedItems) * 100 : 0;
+              return (
+                <div key={key} className="space-y-1">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${item.color}`} /> {item.label}
+                    </span>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {item.count} cái ({percent.toFixed(0)}%)
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${item.color}`} style={{ width: `${percent}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl text-xs text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50">
+            💡 <strong>Khuyến nghị QC:</strong> Đa số lỗi cháy màu do máy ép phẳng để nhiệt &gt;200°C quá 60s. Khuyên thợ chuyển sang 185°C kèm giấy Sublimation Hàn Quốc.
           </div>
         </div>
 
-        {/* Right 1 Col: Live Machine Fleet Status */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-500" /> Tình Trạng Máy Xưởng
-            </h3>
-            <button
-              onClick={() => onNavigateTab('machines')}
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold"
-            >
-              Chi tiết
-            </button>
+        {/* Live Workshop Production Table */}
+        <div className="lg:col-span-2 p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <Printer className="w-4 h-4 text-blue-600" /> Lệnh In Ấn Đang Chạy Trong Xưởng
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Tình trạng duyệt mockup, thợ phụ trách và hạn xuất xưởng
+                </p>
+              </div>
+              <button
+                onClick={() => onNavigateTab('orders')}
+                className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+              >
+                Xem tất cả đơn <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
+                  <tr>
+                    <th className="pb-2.5 font-semibold">Mã Đơn & Khách Hàng</th>
+                    <th className="pb-2.5 font-semibold">Sản Phẩm & SL</th>
+                    <th className="pb-2.5 font-semibold">Duyệt Mẫu (Proof)</th>
+                    <th className="pb-2.5 font-semibold">Công Đoạn Xưởng</th>
+                    <th className="pb-2.5 font-semibold">Hạn Giao</th>
+                    <th className="pb-2.5 font-semibold text-right">Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {orders.slice(0, 5).map((ord) => {
+                    const statusInfo = getOrderStatusInfo(ord.status);
+                    const priorityInfo = getPriorityInfo(ord.priority);
+                    const proofInfo = getProofStatusInfo(ord.proofDesign?.status);
+
+                    return (
+                      <tr
+                        key={ord.id}
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer"
+                        onClick={() => onSelectOrder(ord)}
+                      >
+                        <td className="py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 dark:text-white">
+                              {ord.orderCode}
+                            </span>
+                            {ord.priority !== 'binh_thuong' && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${priorityInfo.badge}`}>
+                                {priorityInfo.label}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                            {ord.customerCompany || ord.customerName}
+                          </p>
+                        </td>
+                        <td className="py-3">
+                          <p className="font-medium text-slate-800 dark:text-slate-200 line-clamp-1">
+                            {ord.items[0]?.productName}
+                          </p>
+                          <span className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold">
+                            {ord.items[0]?.quantity} chiếc
+                          </span>
+                        </td>
+                        <td className="py-3">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${proofInfo.badge}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${proofInfo.dot}`} />
+                            {proofInfo.label}
+                          </span>
+                        </td>
+                        <td className="py-3">
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${statusInfo.bg} ${statusInfo.text} ${statusInfo.border}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot}`} />
+                            {statusInfo.label}
+                          </span>
+                        </td>
+                        <td className="py-3 text-slate-600 dark:text-slate-400 font-medium">
+                          {formatDate(ord.deadline)}
+                        </td>
+                        <td className="py-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {onPrintJobTicket && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onPrintJobTicket(ord);
+                                }}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors"
+                                title="In phiếu lệnh sản xuất"
+                              >
+                                <Printer className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSelectOrder(ord);
+                              }}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors"
+                              title="Xem chi tiết lệnh in & duyệt mockup"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            {machines.slice(0, 4).map((mac) => (
-              <div
-                key={mac.id}
-                className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800"
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-semibold text-xs text-slate-900 dark:text-white truncate max-w-[180px]">
-                    {mac.name}
-                  </span>
-                  {mac.status === 'dang_in' ? (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Đang chạy
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
-                      Sẵn sàng
-                    </span>
-                  )}
-                </div>
-
-                {mac.currentJob ? (
-                  <div>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate">
-                      Lệnh: <span className="font-semibold text-blue-600">{mac.currentJob.orderCode}</span> - {mac.currentJob.productName}
-                    </p>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-blue-600 rounded-full"
-                          style={{ width: `${mac.currentJob.progressPercent}%` }}
-                        />
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">
-                        {mac.currentJob.progressPercent}%
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                    Máy rảnh, sẵn sàng nhận lệnh mới.
-                  </p>
-                )}
-              </div>
-            ))}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <span>Hiển thị 5 lệnh in mới nhất trong ca</span>
+            <button
+              onClick={() => onNavigateTab('machines')}
+              className="text-blue-600 dark:text-blue-400 font-semibold hover:underline flex items-center gap-1"
+            >
+              Kiểm tra tình trạng máy móc & công suất <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>

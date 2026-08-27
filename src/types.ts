@@ -79,6 +79,31 @@ export interface OrderItem {
   customNames?: string[]; // Danh sách tên riêng / hình riêng từng cái
 }
 
+export type ProofStatus = 'cho_gui_mockup' | 'cho_khach_duyet' | 'khach_da_duyet' | 'yeu_cau_sua';
+export type ShippingCarrier = 'ahamove' | 'grab_express' | 'viettel_post' | 'ghtk' | 'shipper_xuong' | 'khach_lay_tai_xuong';
+export type ShippingStatus = 'cho_dong_goi' | 'da_ban_giao_shipper' | 'dang_giao' | 'giao_thanh_cong' | 'that_bai_hoan_ve';
+
+export interface ProofDesignInfo {
+  status: ProofStatus;
+  mockupImageUrl: string;
+  designFileUrl?: string;
+  shareCode?: string;
+  customerFeedback?: string;
+  lastUpdated?: string;
+  version?: number;
+}
+
+export interface ShippingTrackingInfo {
+  carrier: ShippingCarrier;
+  trackingCode?: string;
+  codAmount?: number;
+  isCodCollected?: boolean;
+  status: ShippingStatus;
+  estimatedDelivery?: string;
+  shipperPhone?: string;
+  notes?: string;
+}
+
 export interface Order {
   id: string;
   orderCode: string; // VD: "ORD-2026-089"
@@ -95,9 +120,12 @@ export interface Order {
   createdAt: string;
   deadline: string;
   assignedTechnician?: string;
+  assignedMachineId?: string;
   items: OrderItem[];
   shippingAddress: string;
   productionNotes?: string;
+  proofDesign?: ProofDesignInfo;
+  shippingInfo?: ShippingTrackingInfo;
 }
 
 export interface GiftProduct {
@@ -205,5 +233,110 @@ export interface DefectLog {
   timestamp: string;
   deductedStock: boolean;
   notes?: string;
+}
+
+export type InventoryTransactionType = 'NHAP' | 'XUAT_DON' | 'XUAT_HU' | 'KIEM_KE';
+
+export interface InventoryTransactionLog {
+  id: string;
+  timestamp: string;
+  itemId: string;
+  itemName: string;
+  itemSku: string;
+  itemType: 'phoi_san_pham' | 'vat_tu';
+  unit: string;
+  type: InventoryTransactionType;
+  quantityDelta: number; // +100 (NHAP), -2 (XUAT_DON), -1 (XUAT_HU), +/-5 (KIEM_KE)
+  stockBefore: number;
+  stockAfter: number;
+  referenceId?: string; // Mã đơn GIFT-2608-01, hoặc Mã phiếu nhập PN-..., hoặc Phiếu kiểm kê KK-...
+  supplier?: string;
+  unitPrice?: number;
+  totalValue?: number;
+  performer: string;
+  notes?: string;
+}
+
+export interface QuoteCalculatedItem {
+  id: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  category: ProductCategory;
+  serviceGroup: PrintServiceGroup;
+  unit: string;
+  basePrice: number;
+  quantity: number;
+  technique: PrintTechnique;
+  positionsCount: number;
+  packaging: 'khong_hop' | 'hop_carton' | 'hop_xi_lot_lua' | 'tui_kraft';
+  personalizeCount: number;
+  photoFormat?: string;
+  lamination?: 'khong_can' | 'can_bong' | 'can_mo' | 'can_hologram' | 'ep_plastic';
+  frameOption?: 'khong_khung' | 'khung_composite_de_ban' | 'khung_go_treo_tuong';
+  unitPrintCost: number;
+  finalUnitPrice: number;
+  totalPrice: number;
+  descriptionSummary: string;
+  imageUrl?: string;
+}
+
+export type FinancialVoucherType = 'thu' | 'chi';
+
+export type FinancialCategory =
+  // Thu (Receipts)
+  | 'thu_tien_coc'           // Thu tiền cọc đơn hàng (50% hoặc tùy chọn)
+  | 'thu_tat_toan'           // Thu tất toán hoàn tất đơn / COD
+  | 'thu_cong_no'            // Thu công nợ gối đầu khách hàng B2B/Đại lý
+  | 'thu_khac'               // Thu nhập khác
+  // Chi (Expenses)
+  | 'chi_nhap_phoi'          // Chi mua phôi quà tặng (Ly sứ, áo thun, móc khóa...)
+  | 'chi_nhap_vat_tu_muc'    // Chi mua mực in chuyển nhiệt, decal, màng cán
+  | 'chi_dien_nuoc_3pha'     // Tiền điện 3 pha xưởng ép nhiệt & sản xuất
+  | 'chi_thue_mat_bang'      // Thuê mặt bằng xưởng in
+  | 'chi_luong_tho_in'       // Lương & phụ cấp thợ in / thợ thiết kế
+  | 'chi_bao_tri_may'        // Bảo trì, thay thế linh kiện máy ép / đầu phun
+  | 'chi_van_chuyen_ship'    // Cước vận chuyển Ahamove, GHTK, xe tải
+  | 'chi_hao_hut_in'         // Chi phí bù phôi hỏng do lỗi in ấn
+  | 'chi_khac';              // Chi phí vận hành khác
+
+export type FinancialPaymentMethod = 'tien_mat' | 'chuyen_khoan';
+
+export interface FinancialVoucher {
+  id: string;
+  voucherCode: string; // VD: PT-202608-01, PC-202608-01
+  type: FinancialVoucherType;
+  category: FinancialCategory;
+  title: string;
+  amount: number;
+  paymentMethod: FinancialPaymentMethod;
+  date: string;
+  orderId?: string;
+  orderCode?: string;
+  customerId?: string;
+  customerName?: string;
+  recipientOrPayer: string;
+  performer: string;
+  notes?: string;
+}
+
+export interface ProductProfitabilityMetric {
+  productId: string;
+  productName: string;
+  sku: string;
+  category: ProductCategory;
+  serviceGroup: PrintServiceGroup;
+  totalSoldQty: number;
+  totalRevenue: number;
+  totalBaseCost: number;
+  totalPrintMaterialCost: number;
+  totalScrapCost: number;
+  totalCOGS: number;
+  grossProfit: number;
+  grossMarginPercent: number;
+  avgSellingPrice: number;
+  avgCostPerUnit: number;
+  defectCount: number;
+  scrapRate: number;
 }
 

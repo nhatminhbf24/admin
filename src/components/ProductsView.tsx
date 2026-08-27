@@ -29,7 +29,7 @@ interface ProductsViewProps {
 }
 
 export const ProductsView: React.FC<ProductsViewProps> = ({
-  products,
+  products = [],
   onAddProduct,
   onUpdateStock,
 }) => {
@@ -51,7 +51,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
   const [newProdTime, setNewProdTime] = useState(180);
   const [newProdMachine, setNewProdMachine] = useState('Máy ép ly đôi ST-210');
 
-  const filteredProducts = products.filter((p) => {
+  const filteredProducts = (products || []).filter((p) => {
     if (selectedGroup !== 'all' && p.serviceGroup !== selectedGroup) return false;
     if (selectedCategory !== 'all' && p.category !== selectedCategory) return false;
     if (searchQuery.trim() !== '') {

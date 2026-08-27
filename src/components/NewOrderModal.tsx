@@ -96,8 +96,65 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
       }
     }
 
-    const total = initialQuoteData?.calculation?.grandTotal || (selectedProd.basePrice + unitPrint) * quantity;
+    const total = initialQuoteData?.grandTotal || initialQuoteData?.calculation?.grandTotal || (selectedProd.basePrice + unitPrint) * quantity;
     const deposit = paymentStatus === 'da_tat_toan' ? total : paymentStatus === 'da_coc_50' ? Math.round(total * 0.5) : 0;
+
+    const multiQuoteItems = initialQuoteData?.multiItems;
+    const orderItems = multiQuoteItems && multiQuoteItems.length > 0
+      ? multiQuoteItems.map((qItem: any, idx: number) => {
+          const prod = products.find((p) => p.id === qItem.productId) || selectedProd;
+          return {
+            id: `item-${Date.now()}-${idx}`,
+            productName: qItem.productName || prod.name,
+            sku: qItem.sku || prod.sku,
+            category: qItem.category || prod.category,
+            serviceGroup: qItem.serviceGroup || prod.serviceGroup,
+            quantity: qItem.quantity,
+            unitPrice: qItem.basePrice || prod.basePrice,
+            printPricePerUnit: qItem.unitPrintCost || 12000,
+            heatPressSpecs: prod.heatPressSpecs,
+            photoPrintSpecs: prod.photoPrintSpecs,
+            printPositions: [
+              {
+                id: `pos-${Date.now()}-${idx}`,
+                name: qItem.descriptionSummary || 'Vị trí in tiêu chuẩn',
+                dimensions: 'Khổ in tiêu chuẩn theo phôi',
+                colors: 'In 4-6 màu sắc nét',
+                technique: qItem.technique || 'chuyen_nhiet',
+              },
+            ],
+            mockupUrl: qItem.imageUrl || prod.imageUrl,
+            proofApproved: false,
+            notes: qItem.descriptionSummary || '',
+          };
+        })
+      : [
+          {
+            id: `item-${Date.now()}`,
+            productName: selectedProd.name,
+            sku: selectedProd.sku,
+            category: selectedProd.category,
+            serviceGroup: selectedProd.serviceGroup,
+            quantity,
+            unitPrice: selectedProd.basePrice,
+            printPricePerUnit: unitPrint,
+            heatPressSpecs: selectedProd.heatPressSpecs,
+            photoPrintSpecs: selectedProd.photoPrintSpecs,
+            printPositions: [
+              {
+                id: `pos-${Date.now()}`,
+                name: 'Vị trí chính (Mặt trước)',
+                dimensions: 'Khổ in tiêu chuẩn theo phôi',
+                colors: 'In 4-6 màu sắc nét',
+                technique,
+              },
+            ],
+            mockupUrl: selectedProd.imageUrl,
+            proofApproved: false,
+            notes: notes,
+            customNames: customNamesList.length > 0 ? customNamesList : undefined,
+          },
+        ];
 
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
@@ -118,33 +175,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
       productionNotes: notes || (selectedProd.serviceGroup === 'chuyen_nhiet' 
         ? 'Ép nhiệt đúng nhiệt độ và thời gian theo phiếu xưởng.' 
         : 'In ảnh sắc nét, cán màng bảo vệ, cắt bế cẩn thận.'),
-      items: [
-        {
-          id: `item-${Date.now()}`,
-          productName: selectedProd.name,
-          sku: selectedProd.sku,
-          category: selectedProd.category,
-          serviceGroup: selectedProd.serviceGroup,
-          quantity,
-          unitPrice: selectedProd.basePrice,
-          printPricePerUnit: unitPrint,
-          heatPressSpecs: selectedProd.heatPressSpecs,
-          photoPrintSpecs: selectedProd.photoPrintSpecs,
-          printPositions: [
-            {
-              id: `pos-${Date.now()}`,
-              name: 'Vị trí chính (Mặt trước)',
-              dimensions: 'Khổ in tiêu chuẩn theo phôi',
-              colors: 'In 4-6 màu sắc nét',
-              technique,
-            },
-          ],
-          mockupUrl: selectedProd.imageUrl,
-          proofApproved: false,
-          notes: notes,
-          customNames: customNamesList.length > 0 ? customNamesList : undefined,
-        },
-      ],
+      items: orderItems,
     };
 
     onSaveOrder(newOrder);

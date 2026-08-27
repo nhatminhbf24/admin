@@ -12,15 +12,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Layers,
-  Sparkles
+  Sparkles,
+  DollarSign,
+  Archive
 } from 'lucide-react';
 
 export type NavTab = 
   | 'dashboard'
   | 'orders'
+  | 'order_history'
   | 'quote_calculator'
-  | 'products'
   | 'inventory'
+  | 'finance'
   | 'customers'
   | 'machines'
   | 'tailadmin_guide';
@@ -42,10 +45,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navItems: { id: NavTab; label: string; icon: React.ElementType; badge?: number | string; badgeColor?: string }[] = [
     { id: 'dashboard', label: 'Bảng Điều Khiển', icon: LayoutDashboard },
-    { id: 'orders', label: 'Tiến Độ Đơn & Xưởng In', icon: Printer, badge: pendingOrdersCount, badgeColor: 'bg-primary text-white' },
+    { id: 'orders', label: 'Tiến Độ Đơn & Xưởng In', icon: Printer, badge: pendingOrdersCount, badgeColor: 'bg-rose-500 text-white' },
+    { id: 'order_history', label: 'Lịch Sử & Lưu Trữ Đơn', icon: Archive, badge: 'Lưu Trữ', badgeColor: 'bg-slate-700 text-white' },
     { id: 'quote_calculator', label: 'Tính Giá & Báo Giá In', icon: Calculator, badge: 'Hot', badgeColor: 'bg-amber-500 text-white' },
-    { id: 'products', label: 'Danh Mục Phôi Quà Tặng', icon: Gift },
-    { id: 'inventory', label: 'Vật Tư & Mực In', icon: Package },
+    { id: 'inventory', label: 'Kho Phôi & Vật Tư', icon: Package, badge: 'Gộp', badgeColor: 'bg-rose-500 text-white' },
+    { id: 'finance', label: 'Tài Chính & Báo Cáo', icon: DollarSign, badge: 'P&L', badgeColor: 'bg-emerald-500 text-white' },
     { id: 'customers', label: 'Khách Hàng & Doanh Nghiệp', icon: Users },
     { id: 'machines', label: 'Máy Móc & Thiết Bị In', icon: Cpu },
     { id: 'tailadmin_guide', label: 'Kiến Trúc TailAdmin & HDSD', icon: FileSpreadsheet, badge: 'Doc', badgeColor: 'bg-emerald-500 text-white' },
@@ -61,19 +65,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex items-center justify-between h-18 px-4 border-b border-slate-100 dark:border-slate-800">
         {!collapsed ? (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-              <Sparkles className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-pink-500 flex items-center justify-center text-white shadow-md shadow-rose-500/20">
+              <Gift className="w-5 h-5 text-white" />
             </div>
             <div>
               <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
-                GiftPrint <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">PRO</span>
+                GiftPrint <span className="text-xs px-1.5 py-0.5 rounded font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300">PRO</span>
               </span>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Xưởng In & Quà Tặng</p>
+              <p className="text-xs text-rose-500 dark:text-rose-400 font-medium">Xưởng Quà Tặng & In Ấn</p>
             </div>
           </div>
         ) : (
-          <div className="mx-auto w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
-            <Sparkles className="w-5 h-5" />
+          <div className="mx-auto w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-pink-500 flex items-center justify-center text-white shadow-md shadow-rose-500/20">
+            <Gift className="w-5 h-5" />
           </div>
         )}
 
@@ -103,12 +107,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 group relative ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-semibold'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm shadow-rose-500/30 font-semibold'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-rose-50/50 dark:hover:bg-slate-800/80 hover:text-rose-600 dark:hover:text-rose-400'
               }`}
               title={collapsed ? item.label : undefined}
             >
-              <Icon className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400'}`} />
+              <Icon className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-rose-600 dark:group-hover:text-rose-400'}`} />
               
               {!collapsed && (
                 <span className="flex-1 text-left truncate">{item.label}</span>
@@ -125,7 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
 
               {collapsed && item.badge !== undefined && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500" />
               )}
             </button>
           );

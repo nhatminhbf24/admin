@@ -31,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   setDarkMode,
   onOpenNewOrder,
   onOpenQuickQuote,
-  orders,
+  orders = [],
   onSelectOrder,
   searchQuery,
   setSearchQuery,
@@ -40,8 +40,8 @@ export const Header: React.FC<HeaderProps> = ({
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   // Urgent and pending approvals
-  const urgentOrders = orders.filter((o) => o.priority === 'hoa_toc' || o.priority === 'gap');
-  const mockupPendingOrders = orders.filter((o) => o.status === 'duyet_mockup');
+  const urgentOrders = (orders || []).filter((o) => o.priority === 'hoa_toc' || o.priority === 'gap');
+  const mockupPendingOrders = (orders || []).filter((o) => o.status === 'duyet_mockup');
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between h-18 px-6 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80">
@@ -54,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm mã đơn (GIFT-...), tên khách, sđt, phôi bình, cốc, bút..."
-            className="w-full pl-10 pr-4 py-2 text-sm bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all"
+            className="w-full pl-10 pr-4 py-2 text-sm bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl border border-transparent focus:border-rose-500 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all"
           />
         </div>
       </div>
@@ -64,17 +64,17 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Quick Quote Calculator */}
         <button
           onClick={onOpenQuickQuote}
-          className="hidden sm:flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all"
+          className="hidden sm:flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-slate-700 rounded-xl transition-all"
           title="Mở máy tính báo giá in ấn"
         >
-          <Calculator className="w-4 h-4 text-amber-500" />
+          <Calculator className="w-4 h-4 text-rose-500" />
           <span>Tính Báo Giá</span>
         </button>
 
         {/* New Order Button */}
         <button
           onClick={onOpenNewOrder}
-          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-500/30 rounded-xl transition-all active:scale-95"
+          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-rose-500 hover:bg-rose-600 shadow-sm shadow-rose-500/30 rounded-xl transition-all active:scale-95"
         >
           <PlusCircle className="w-4 h-4" />
           <span className="hidden xs:inline">Tạo Đơn In Mới</span>
@@ -109,10 +109,10 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-4 z-50 animate-in fade-in zoom-in-95">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-blue-600" />
+                  <Bell className="w-4 h-4 text-rose-500" />
                   <h4 className="font-bold text-sm text-slate-900 dark:text-white">Thông Báo Tiến Độ Xưởng</h4>
                 </div>
-                <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 font-semibold px-2 py-0.5 rounded-full">
+                <span className="text-xs bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 font-semibold px-2 py-0.5 rounded-full">
                   {urgentOrders.length + mockupPendingOrders.length} mới
                 </span>
               </div>

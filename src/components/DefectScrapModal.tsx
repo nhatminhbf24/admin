@@ -40,8 +40,8 @@ interface DefectScrapModalProps {
 
 export const DefectScrapModal: React.FC<DefectScrapModalProps> = ({
   order,
-  orders,
-  products,
+  orders = [],
+  products = [],
   preselectedProductSku,
   onClose,
   onSubmitDefect,
@@ -50,9 +50,9 @@ export const DefectScrapModal: React.FC<DefectScrapModalProps> = ({
   
   // Find initial product
   const defaultProduct = preselectedProductSku 
-    ? products.find(p => p.sku === preselectedProductSku)
+    ? (products || []).find(p => p.sku === preselectedProductSku)
     : order?.items[0]
-    ? products.find(p => p.sku === order.items[0].sku) || products[0]
+    ? (products || []).find(p => p.sku === order.items[0].sku) || products[0]
     : products[0];
 
   const [selectedProductId, setSelectedProductId] = useState<string>(defaultProduct?.id || products[0]?.id || '');

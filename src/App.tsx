@@ -4,16 +4,18 @@ import { Header } from './components/Header';
 import { DashboardView } from './components/DashboardView';
 import { OrdersView } from './components/OrdersView';
 import { QuoteCalculatorView } from './components/QuoteCalculatorView';
-import { ProductsView } from './components/ProductsView';
 import { InventoryView } from './components/InventoryView';
 import { CustomersView } from './components/CustomersView';
 import { MachinesView } from './components/MachinesView';
 import { TailAdminGuideView } from './components/TailAdminGuideView';
+import { FinanceAnalyticsView } from './components/FinanceAnalyticsView';
+import { OrderHistoryView } from './components/OrderHistoryView';
 import { JobTicketModal } from './components/JobTicketModal';
 import { DeliveryReceiptModal } from './components/DeliveryReceiptModal';
 import { OrderDetailsModal } from './components/OrderDetailsModal';
 import { NewOrderModal } from './components/NewOrderModal';
 import { DefectScrapModal } from './components/DefectScrapModal';
+import { VietQrModal } from './components/VietQrModal';
 import {
   INITIAL_ORDERS,
   INITIAL_PRODUCTS,
@@ -21,8 +23,20 @@ import {
   INITIAL_CUSTOMERS,
   INITIAL_MATERIALS,
   INITIAL_DEFECT_LOGS,
+  INITIAL_INVENTORY_TRANSACTIONS,
+  INITIAL_FINANCIAL_VOUCHERS,
 } from './data/mockData';
-import { Order, GiftProduct, MaterialInventory, OrderStatus, PaymentStatus, DefectLog, DefectReason } from './types';
+import {
+  Order,
+  GiftProduct,
+  MaterialInventory,
+  OrderStatus,
+  PaymentStatus,
+  DefectLog,
+  DefectReason,
+  InventoryTransactionLog,
+  FinancialVoucher,
+} from './types';
 import { deductBOMFromInventory } from './utils/bomCalculator';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 
@@ -45,6 +59,12 @@ export default function App() {
   const [defectLogs, setDefectLogs] = useState<DefectLog[]>(INITIAL_DEFECT_LOGS);
   const [customers, setCustomers] = useState(INITIAL_CUSTOMERS);
   const [machines, setMachines] = useState(INITIAL_MACHINES);
+  const [financialVouchers, setFinancialVouchers] = useState<FinancialVoucher[]>(
+    INITIAL_FINANCIAL_VOUCHERS
+  );
+  const [inventoryTransactions, setInventoryTransactions] = useState<InventoryTransactionLog[]>(
+    INITIAL_INVENTORY_TRANSACTIONS
+  );
 
   // Modals state
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -52,6 +72,10 @@ export default function App() {
   const [deliveryReceiptOrder, setDeliveryReceiptOrder] = useState<Order | null>(null);
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState<boolean>(false);
   const [quotePrefillData, setQuotePrefillData] = useState<any>(null);
+
+  // VietQR Modal state
+  const [vietQrOrder, setVietQrOrder] = useState<Order | null>(null);
+  const [vietQrAmount, setVietQrAmount] = useState<number | undefined>(undefined);
 
   // Defect Modal state
   const [isDefectModalOpen, setIsDefectModalOpen] = useState<boolean>(false);
@@ -197,13 +221,191 @@ export default function App() {
   };
 
   // Handler: Update order payment status
-  const handleUpdatePaymentStatus = (orderId: string, newPayment: PaymentStatus) => {
+  const handleUpdatePaymentStatus = (
+    orderId: string,
+    newPayment: PaymentStatus,
+    depositAmount?: number
+  ) => {
     setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, paymentStatus: newPayment } : o))
+      prev.map((o) => {
+        if (o.id === orderId) {
+          const updatedDeposit =
+            depositAmount !== undefined
+              ? depositAmount
+              : newPayment === 'da_tat_toan'
+              ? o.totalAmount
+              : newPayment === 'da_coc_50'
+              ? Math.round(o.totalAmount * 0.5)
+              : 0;
+          return { ...o, paymentStatus: newPayment, depositAmount: updatedDeposit };
+        }
+        return o;
+      })
     );
     if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder((prev) => (prev ? { ...prev, paymentStatus: newPayment } : null));
+      setSelectedOrder((prev) => {
+        if (!prev) return null;
+        const updatedDeposit =
+          depositAmount !== undefined
+            ? depositAmount
+            : newPayment === 'da_tat_toan'
+            ? prev.totalAmount
+            : newPayment === 'da_coc_50'
+            ? Math.round(prev.totalAmount * 0.5)
+            : 0;
+        return { ...prev, paymentStatus: newPayment, depositAmount: updatedDeposit };
+      });
     }
+  };
+
+  // Handler: Add financial voucher to cashbook
+  const handleAddFinancialVoucher = (newVoucher: FinancialVoucher) => {
+    setFinancialVouchers((prev) => [newVoucher, ...prev]);
+    setToastMessage({
+      title: `Đã lập ${newVoucher.type === 'thu' ? 'Phiếu Thu' : 'Phiếu Chi'} [${newVoucher.voucherCode}]!`,
+      desc: `${newVoucher.title} (${newVoucher.type === 'thu' ? '+' : '-'}${newVoucher.amount.toLocaleString()} ₫)`,
+      type: 'success',
+    });
+  };
+
+  // Handler: Archive completed order to keep Kanban WIP clean
+  const handleArchiveOrder = (orderId: string) => {
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? { ...o, isArchived: true, archivedAt: new Date().toISOString() }
+          : o
+      )
+    );
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder((prev) =>
+        prev ? { ...prev, isArchived: true, archivedAt: new Date().toISOString() } : null
+      );
+    }
+    setToastMessage({
+      title: 'Đã lưu trữ đơn hàng thành công!',
+      desc: 'Đơn đã được chuyển vào mục "Lịch Sử & Lưu Trữ Đơn". Bảng Kanban của bạn luôn sạch sẽ!',
+      type: 'success',
+    });
+  };
+
+  // Handler: Unarchive order back to active Kanban WIP
+  const handleUnarchiveOrder = (orderId: string) => {
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? { ...o, isArchived: false, archivedAt: undefined }
+          : o
+      )
+    );
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder((prev) =>
+        prev ? { ...prev, isArchived: false, archivedAt: undefined } : null
+      );
+    }
+    setToastMessage({
+      title: 'Đã khôi phục đơn hàng!',
+      desc: 'Đơn hàng đã được đưa trở lại bảng điều độ sản xuất Kanban.',
+      type: 'success',
+    });
+  };
+
+  // Handler: Update Proof Design info (Mockup, Approval status, Notes)
+  const handleUpdateProofDesign = (orderId: string, proof: any) => {
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id === orderId) {
+          const currentProof = o.proofDesign || {
+            mockupImageUrl: o.items[0]?.mockupUrl || '',
+            status: 'cho_khach_duyet',
+            version: 1,
+            shareCode: o.orderCode.toLowerCase(),
+          };
+          return {
+            ...o,
+            proofDesign: {
+              ...currentProof,
+              ...proof,
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        }
+        return o;
+      })
+    );
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder((prev) => {
+        if (!prev) return null;
+        const currentProof = prev.proofDesign || {
+          mockupImageUrl: prev.items[0]?.mockupUrl || '',
+          status: 'cho_khach_duyet',
+          version: 1,
+          shareCode: prev.orderCode.toLowerCase(),
+        };
+        return {
+          ...prev,
+          proofDesign: {
+            ...currentProof,
+            ...proof,
+            updatedAt: new Date().toISOString(),
+          },
+        };
+      });
+    }
+    setToastMessage({
+      title: 'Đã cập nhật trạng thái duyệt mẫu Proofing!',
+      desc: `Đã lưu tiến độ duyệt mockup cho đơn hàng.`,
+      type: 'success',
+    });
+  };
+
+  // Handler: Update Shipping Tracking info (Carrier, Tracking Code, COD status)
+  const handleUpdateShippingInfo = (orderId: string, shipping: any) => {
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id === orderId) {
+          const currentShipping = o.shippingInfo || {
+            carrier: 'ahamove',
+            status: 'cho_dong_goi',
+            codAmount: Math.max(0, o.totalAmount - o.depositAmount),
+            isCodCollected: false,
+          };
+          return {
+            ...o,
+            shippingInfo: {
+              ...currentShipping,
+              ...shipping,
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        }
+        return o;
+      })
+    );
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder((prev) => {
+        if (!prev) return null;
+        const currentShipping = prev.shippingInfo || {
+          carrier: 'ahamove',
+          status: 'cho_dong_goi',
+          codAmount: Math.max(0, prev.totalAmount - prev.depositAmount),
+          isCodCollected: false,
+        };
+        return {
+          ...prev,
+          shippingInfo: {
+            ...currentShipping,
+            ...shipping,
+            updatedAt: new Date().toISOString(),
+          },
+        };
+      });
+    }
+    setToastMessage({
+      title: 'Đã cập nhật thông tin vận chuyển & mã vận đơn!',
+      desc: `Đơn vị giao hàng và trạng thái COD đã được cập nhật.`,
+      type: 'success',
+    });
   };
 
   // Handler: Create order directly from Pricing Calculator
@@ -245,6 +447,52 @@ export default function App() {
         m.id === matId ? { ...m, quantity: Math.max(0, m.quantity + delta) } : m
       )
     );
+  };
+
+  // Handler: Record inventory transactions (Nhập kho, Xuất đơn, Xuất hỏng, Cân bằng kiểm kê)
+  const handleRecordTransaction = (
+    txData: Omit<InventoryTransactionLog, 'id' | 'timestamp'>
+  ) => {
+    const newTx: InventoryTransactionLog = {
+      ...txData,
+      id: `tx-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: new Date().toISOString(),
+    };
+
+    setInventoryTransactions((prev) => [newTx, ...prev]);
+
+    // Đồng bộ tồn kho sản phẩm hoặc vật tư
+    if (txData.itemType === 'phoi_san_pham') {
+      setProducts((prev) =>
+        prev.map((p) => {
+          if (p.id === txData.itemId) {
+            return {
+              ...p,
+              stockQuantity: Math.max(0, p.stockQuantity + txData.quantityDelta),
+            };
+          }
+          return p;
+        })
+      );
+    } else {
+      setMaterials((prev) =>
+        prev.map((m) => {
+          if (m.id === txData.itemId) {
+            return {
+              ...m,
+              quantity: Math.max(0, m.quantity + txData.quantityDelta),
+            };
+          }
+          return m;
+        })
+      );
+    }
+
+    setToastMessage({
+      title: 'Đã ghi nhận giao dịch kho!',
+      desc: `${txData.type}: ${txData.itemName} (${txData.quantityDelta >= 0 ? `+${txData.quantityDelta}` : txData.quantityDelta} ${txData.unit})`,
+      type: 'success',
+    });
   };
 
   const pendingOrdersCount = orders.filter(
@@ -313,12 +561,14 @@ export default function App() {
               orders={orders}
               products={products}
               machines={machines}
+              defectLogs={defectLogs}
               onSelectOrder={(ord) => setSelectedOrder(ord)}
               onNavigateTab={(tab) => setActiveTab(tab)}
               onOpenNewOrder={() => {
                 setQuotePrefillData(null);
                 setIsNewOrderModalOpen(true);
               }}
+              onOpenDefectModal={() => setIsDefectModalOpen(true)}
             />
           )}
 
@@ -333,6 +583,28 @@ export default function App() {
               }}
               onPrintJobTicket={(ord) => setJobTicketOrder(ord)}
               onPrintDeliveryReceipt={(ord) => setDeliveryReceiptOrder(ord)}
+              onArchiveOrder={handleArchiveOrder}
+              onNavigateToHistory={() => setActiveTab('order_history')}
+            />
+          )}
+
+          {activeTab === 'order_history' && (
+            <OrderHistoryView
+              orders={orders}
+              onSelectOrder={(ord) => setSelectedOrder(ord)}
+              onUnarchiveOrder={handleUnarchiveOrder}
+              onPrintJobTicket={(ord) => setJobTicketOrder(ord)}
+              onPrintDeliveryReceipt={(ord) => setDeliveryReceiptOrder(ord)}
+              onReorder={(ord) => {
+                setQuotePrefillData({
+                  productId: ord.items[0]?.sku || '',
+                  quantity: ord.items[0]?.quantity || 10,
+                  customerName: ord.customerName,
+                  customerPhone: ord.customerPhone,
+                  customerCompany: ord.customerCompany,
+                });
+                setActiveTab('quote_calculator');
+              }}
             />
           )}
 
@@ -343,25 +615,33 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'products' && (
-            <ProductsView
-              products={products}
-              onAddProduct={handleAddProduct}
-              onUpdateStock={handleUpdateStock}
-            />
-          )}
-
           {activeTab === 'inventory' && (
             <InventoryView
               products={products}
               materials={materials}
-              defectLogs={defectLogs}
+              transactions={inventoryTransactions}
               orders={orders}
-              onUpdateProductStock={handleUpdateProductStockDelta}
-              onUpdateMaterialQuantity={handleUpdateMaterialQuantity}
-              onOpenDefectModal={handleOpenDefectModal}
+              onRecordTransaction={handleRecordTransaction}
               onAddMaterial={handleAddMaterial}
               onAddProduct={handleAddProduct}
+            />
+          )}
+
+          {activeTab === 'finance' && (
+            <FinanceAnalyticsView
+              orders={orders}
+              products={products}
+              materials={materials}
+              defectLogs={defectLogs}
+              financialVouchers={financialVouchers}
+              onAddVoucher={handleAddFinancialVoucher}
+              onUpdateOrderStatus={handleUpdateOrderStatus}
+              onUpdatePaymentStatus={handleUpdatePaymentStatus}
+              onSelectOrder={(ord) => setSelectedOrder(ord)}
+              onOpenVietQrModal={(ord, amount) => {
+                setVietQrOrder(ord);
+                setVietQrAmount(amount);
+              }}
             />
           )}
 
@@ -388,6 +668,8 @@ export default function App() {
           onClose={() => setSelectedOrder(null)}
           onUpdateStatus={handleUpdateOrderStatus}
           onUpdatePayment={handleUpdatePaymentStatus}
+          onUpdateProofDesign={handleUpdateProofDesign}
+          onUpdateShippingInfo={handleUpdateShippingInfo}
           onOpenJobTicket={(ord) => {
             setSelectedOrder(null);
             setJobTicketOrder(ord);
@@ -398,6 +680,7 @@ export default function App() {
           }}
           onDeductBOM={handleDeductBOM}
           onOpenDefectModal={handleOpenDefectModal}
+          onArchiveOrder={handleArchiveOrder}
         />
       )}
 
@@ -443,6 +726,28 @@ export default function App() {
             setDefectTargetSku(undefined);
           }}
           onSubmitDefect={handleSubmitDefect}
+        />
+      )}
+
+      {/* 5. VietQR Payment & Debt Collection Modal */}
+      {vietQrOrder && (
+        <VietQrModal
+          order={vietQrOrder}
+          customAmount={vietQrAmount}
+          onClose={() => {
+            setVietQrOrder(null);
+            setVietQrAmount(undefined);
+          }}
+          onConfirmPaymentSuccess={(orderId, newStatus) => {
+            handleUpdatePaymentStatus(orderId, newStatus);
+            setVietQrOrder(null);
+            setVietQrAmount(undefined);
+            setToastMessage({
+              title: 'Đã xác nhận thanh toán qua VietQR thành công!',
+              desc: `Trạng thái thanh toán của đơn hàng đã được cập nhật.`,
+              type: 'success',
+            });
+          }}
         />
       )}
     </div>

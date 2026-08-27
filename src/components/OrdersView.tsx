@@ -24,9 +24,10 @@ import {
   Check,
   Image as ImageIcon,
   MapPin,
-  GripVertical
+  GripVertical,
+  Share2
 } from 'lucide-react';
-import { Order, OrderStatus, PriorityLevel, PaymentStatus } from '../types';
+import { Order, OrderStatus, PriorityLevel, PaymentStatus, ProofStatus } from '../types';
 import {
   formatCurrency,
   formatNumber,
@@ -34,6 +35,9 @@ import {
   getOrderStatusInfo,
   getPriorityInfo,
   getPaymentStatusInfo,
+  getProofStatusInfo,
+  getCarrierInfo,
+  getShippingStatusInfo,
   formatShippingInfoText,
 } from '../utils/formatters';
 
@@ -56,7 +60,7 @@ const KANBAN_STAGES: { status: OrderStatus; label: string; desc: string; color: 
 ];
 
 export const OrdersView: React.FC<OrdersViewProps> = ({
-  orders,
+  orders = [],
   onSelectOrder,
   onUpdateOrderStatus,
   onOpenNewOrder,
@@ -67,8 +71,10 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
   const [groupFilter, setGroupFilter] = useState<'all' | 'chuyen_nhiet' | 'in_anh_thuong'>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [proofFilter, setProofFilter] = useState<string>('all');
   const [searchFilter, setSearchFilter] = useState<string>('');
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+  const [copiedProofId, setCopiedProofId] = useState<string | null>(null);
 
   // Drag and Drop State
   const [draggedOrderId, setDraggedOrderId] = useState<string | null>(null);
@@ -121,17 +127,32 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
     }, 2000);
   };
 
+  const handleCopyProofLink = (e: React.MouseEvent, ord: Order) => {
+    e.stopPropagation();
+    const shareUrl = `https://mockup.giftprint.vn/p/${ord.proofDesign?.shareCode || ord.orderCode.toLowerCase()}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedProofId(ord.id);
+    setTimeout(() => {
+      setCopiedProofId(null);
+    }, 2000);
+  };
+
   // Filtered orders
-  const filteredOrders = orders.filter((ord) => {
+  const filteredOrders = (orders || []).filter((ord) => {
     if (groupFilter !== 'all' && ord.serviceGroup !== groupFilter) return false;
     if (statusFilter !== 'all' && ord.status !== statusFilter) return false;
     if (priorityFilter !== 'all' && ord.priority !== priorityFilter) return false;
+    if (proofFilter !== 'all') {
+      const currentProofStatus = ord.proofDesign?.status || 'cho_gui_mockup';
+      if (currentProofStatus !== proofFilter) return false;
+    }
     if (searchFilter.trim() !== '') {
       const q = searchFilter.toLowerCase();
       const matchCode = ord.orderCode.toLowerCase().includes(q);
       const matchCustomer = ord.customerName.toLowerCase().includes(q) || (ord.customerCompany && ord.customerCompany.toLowerCase().includes(q));
       const matchProduct = ord.items.some((it) => it.productName.toLowerCase().includes(q));
-      if (!matchCode && !matchCustomer && !matchProduct) return false;
+      const matchTracking = ord.shippingInfo?.trackingCode?.toLowerCase().includes(q);
+      if (!matchCode && !matchCustomer && !matchProduct && !matchTracking) return false;
     }
     return true;
   });
@@ -142,10 +163,10 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Printer className="w-5 h-5 text-blue-600" /> Quản Lý Tiến Độ Đơn Hàng Xưởng In
+            <Printer className="w-5 h-5 text-blue-600" /> Quản Lý Đơn Hàng & Duyệt Mẫu In (Proofing)
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Quy trình sản xuất 6 bước khép kín từ tiếp nhận, duyệt mockup đến in ấn và đóng gói.
+            Quy trình sản xuất 6 bước khép kín, duyệt mockup 2D online và theo dõi vận chuyển.
           </p>
         </div>
 
@@ -226,7 +247,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
             type="text"
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
-            placeholder="Tìm theo mã đơn, tên công ty, tên quà tặng..."
+            placeholder="Tìm mã đơn, khách hàng, tên quà, mã vận đơn..."
             className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 outline-none focus:border-blue-500"
           />
         </div>
@@ -235,7 +256,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
-          className="text-xs bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 outline-none focus:border-blue-500"
+          className="text-xs bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 outline-none focus:border-blue-500 font-medium"
         >
           <option value="all">Tất cả mức ưu tiên</option>
           <option value="hoa_toc">🔥 Hỏa tốc 24h</option>
@@ -243,13 +264,26 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           <option value="binh_thuong">Bình thường</option>
         </select>
 
-        {/* Status Filter */}
+        {/* Proof Status Filter */}
+        <select
+          value={proofFilter}
+          onChange={(e) => setProofFilter(e.target.value)}
+          className="text-xs bg-slate-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-xl px-3 py-1.5 outline-none focus:border-indigo-500 font-bold"
+        >
+          <option value="all">Tất cả trạng thái Mockup</option>
+          <option value="cho_gui_mockup">1. Chờ gửi mockup</option>
+          <option value="cho_khach_duyet">2. Đang chờ khách duyệt</option>
+          <option value="khach_da_duyet">3. ✓ Khách đã duyệt (OK in)</option>
+          <option value="yeu_cau_sua">4. ⚠️ Yêu cầu sửa mẫu</option>
+        </select>
+
+        {/* Stage Status Filter */}
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="text-xs bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 outline-none focus:border-blue-500"
+          className="text-xs bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 outline-none focus:border-blue-500 font-medium"
         >
-          <option value="all">Tất cả công đoạn</option>
+          <option value="all">Tất cả công đoạn xưởng</option>
           <option value="tiep_nhan">1. Tiếp nhận & Báo giá</option>
           <option value="duyet_mockup">2. Chờ duyệt Mockup</option>
           <option value="che_ban">3. Chế bản & Set máy</option>
@@ -314,8 +348,11 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                     stageOrders.map((ord) => {
                       const priorityInfo = getPriorityInfo(ord.priority);
                       const paymentInfo = getPaymentStatusInfo(ord.paymentStatus);
+                      const proofInfo = getProofStatusInfo(ord.proofDesign?.status);
+                      const carrierInfo = getCarrierInfo(ord.shippingInfo?.carrier || 'ahamove');
                       const mainItem = ord.items[0];
                       const isCopied = copiedOrderId === ord.id;
+                      const isProofCopied = copiedProofId === ord.id;
                       const isBeingDragged = draggedOrderId === ord.id;
 
                       return (
@@ -400,17 +437,37 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                             </div>
                           </div>
 
-                          {/* Print Technique & Positions */}
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {mainItem?.printPositions.map((pos) => (
-                              <span
-                                key={pos.id}
-                                className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium"
-                              >
-                                {pos.name} ({pos.technique.toUpperCase()})
-                              </span>
-                            ))}
+                          {/* Proof Design Status & Share Button */}
+                          <div className="mt-2 flex items-center justify-between gap-1 p-1.5 bg-indigo-50/70 dark:bg-indigo-950/30 rounded-lg border border-indigo-100 dark:border-indigo-900/50">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${proofInfo.badge}`}>
+                              {proofInfo.label}
+                            </span>
+
+                            <button
+                              onClick={(e) => handleCopyProofLink(e, ord)}
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 transition-all ${
+                                isProofCopied
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50'
+                              }`}
+                              title="Copy link gửi khách duyệt mẫu qua Zalo"
+                            >
+                              {isProofCopied ? <Check className="w-3 h-3" /> : <Share2 className="w-3 h-3" />}
+                              <span>{isProofCopied ? 'Đã copy' : 'Link Zalo'}</span>
+                            </button>
                           </div>
+
+                          {/* Shipping carrier info if assigned */}
+                          {ord.shippingInfo?.trackingCode && (
+                            <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 px-1">
+                              <span className="flex items-center gap-1 font-medium">
+                                <Truck className="w-3 h-3 text-emerald-600" /> {carrierInfo.label}
+                              </span>
+                              <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                                {ord.shippingInfo.trackingCode}
+                              </span>
+                            </div>
+                          )}
 
                           {/* Footer: Deadline & Action */}
                           <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[11px]">
@@ -438,10 +495,10 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                                   e.stopPropagation();
                                   onPrintJobTicket(ord);
                                 }}
-                                className="p-1 rounded text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-                                title="In phiếu lệnh sản xuất xưởng"
+                                className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 hover:bg-blue-100 flex items-center gap-1 border border-blue-200 dark:border-blue-800"
+                                title="In phiếu lệnh sản xuất xưởng A4/A5"
                               >
-                                <FileText className="w-3.5 h-3.5" />
+                                <Printer className="w-3 h-3 text-blue-600" /> Lệnh
                               </button>
                             </div>
                           </div>
@@ -477,11 +534,12 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
                 <tr>
-                  <th className="py-3 px-3 w-16 text-center">Ảnh In / Mockup</th>
+                  <th className="py-3 px-3 w-16 text-center">Ảnh Mockup</th>
                   <th className="py-3 px-4">Mã Đơn</th>
+                  <th className="py-3 px-4">Duyệt Mẫu (Proof)</th>
                   <th className="py-3 px-4">Khách Hàng / Gửi Ship</th>
                   <th className="py-3 px-4">Sản Phẩm & Phôi Quà Tặng</th>
-                  <th className="py-3 px-4">Công Nghệ In</th>
+                  <th className="py-3 px-4">Vận Chuyển & COD</th>
                   <th className="py-3 px-4">Tổng Tiền / Thanh Toán</th>
                   <th className="py-3 px-4">Tiến Độ Xưởng</th>
                   <th className="py-3 px-4">Hạn Giao</th>
@@ -493,8 +551,11 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                   const statusInfo = getOrderStatusInfo(ord.status);
                   const priorityInfo = getPriorityInfo(ord.priority);
                   const paymentInfo = getPaymentStatusInfo(ord.paymentStatus);
+                  const proofInfo = getProofStatusInfo(ord.proofDesign?.status);
+                  const carrierInfo = getCarrierInfo(ord.shippingInfo?.carrier || 'ahamove');
                   const mainItem = ord.items[0];
                   const isCopied = copiedOrderId === ord.id;
+                  const isProofCopied = copiedProofId === ord.id;
 
                   return (
                     <tr
@@ -532,6 +593,29 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                             {priorityInfo.label}
                           </div>
                         )}
+                      </td>
+
+                      {/* Proof Design Status & Share link */}
+                      <td className="py-3.5 px-4">
+                        <div className="space-y-1">
+                          <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${proofInfo.badge}`}>
+                            {proofInfo.label}
+                          </span>
+                          <div>
+                            <button
+                              onClick={(e) => handleCopyProofLink(e, ord)}
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 transition-all border ${
+                                isProofCopied
+                                  ? 'bg-emerald-600 text-white border-emerald-600'
+                                  : 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 hover:bg-indigo-100'
+                              }`}
+                              title="Sao chép link mockup gửi khách Zalo duyệt"
+                            >
+                              {isProofCopied ? <Check className="w-3 h-3" /> : <Share2 className="w-3 h-3 text-indigo-600" />}
+                              <span>{isProofCopied ? 'Đã copy link!' : 'Copy link Zalo'}</span>
+                            </button>
+                          </div>
+                        </div>
                       </td>
 
                       {/* Customer & Shipping Quick Copy */}
@@ -578,7 +662,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
 
                       {/* Product Name & Quantity */}
                       <td className="py-3.5 px-4">
-                        <p className="font-semibold text-slate-800 dark:text-slate-200 line-clamp-2 max-w-[220px]">
+                        <p className="font-semibold text-slate-800 dark:text-slate-200 line-clamp-2 max-w-[200px]">
                           {mainItem?.productName}
                         </p>
                         <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5 block">
@@ -586,14 +670,22 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                         </span>
                       </td>
 
-                      {/* Techniques */}
+                      {/* Shipping & COD Info */}
                       <td className="py-3.5 px-4">
-                        <div className="flex flex-col gap-1 max-w-[180px]">
-                          {mainItem?.printPositions.map((p) => (
-                            <span key={p.id} className="text-[11px] text-slate-600 dark:text-slate-300 truncate">
-                              • {p.name}: <strong className="uppercase">{p.technique}</strong>
+                        <div className="space-y-1">
+                          <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <Truck className="w-3 h-3 text-emerald-600" /> {carrierInfo.label}
+                          </span>
+                          {ord.shippingInfo?.trackingCode ? (
+                            <span className="font-mono text-[10px] text-blue-600 dark:text-blue-400 block">
+                              Mã: {ord.shippingInfo.trackingCode}
                             </span>
-                          ))}
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic block">Chưa gán mã</span>
+                          )}
+                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block">
+                            COD: {formatCurrency(ord.shippingInfo?.codAmount || Math.max(0, ord.totalAmount - ord.depositAmount))}
+                          </span>
                         </div>
                       </td>
 
@@ -640,10 +732,10 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                               e.stopPropagation();
                               onPrintJobTicket(ord);
                             }}
-                            className="px-2 py-1 text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-1 border border-slate-200 dark:border-slate-700"
-                            title="In phiếu lệnh sản xuất xưởng"
+                            className="px-2 py-1 text-xs font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-1 border border-blue-200 dark:border-blue-800 shadow-2xs"
+                            title="In phiếu lệnh sản xuất xưởng A4/A5"
                           >
-                            <FileText className="w-3.5 h-3.5" /> Lệnh
+                            <Printer className="w-3.5 h-3.5 text-blue-600" /> In Lệnh
                           </button>
                         </div>
                       </td>

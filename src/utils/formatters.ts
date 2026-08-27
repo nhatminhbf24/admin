@@ -232,6 +232,74 @@ export const numberToVietnameseWords = (number: number): string => {
   return words;
 };
 
+export const getProofStatusInfo = (status?: string) => {
+  switch (status) {
+    case 'khach_da_duyet':
+      return {
+        label: 'Khách Đã Duyệt OK In',
+        badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300',
+        dot: 'bg-emerald-500',
+        icon: 'CheckCircle2',
+      };
+    case 'yeu_cau_sua':
+      return {
+        label: 'Yêu Cầu Sửa Mẫu',
+        badge: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300',
+        dot: 'bg-rose-500',
+        icon: 'AlertTriangle',
+      };
+    case 'cho_khach_duyet':
+      return {
+        label: 'Chờ Khách Duyệt (Đã gửi link)',
+        badge: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300',
+        dot: 'bg-amber-500',
+        icon: 'Clock',
+      };
+    case 'cho_gui_mockup':
+    default:
+      return {
+        label: 'Chờ Gửi File Mockup',
+        badge: 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300',
+        dot: 'bg-slate-400',
+        icon: 'FileText',
+      };
+  }
+};
+
+export const getCarrierInfo = (carrier?: string) => {
+  switch (carrier) {
+    case 'ahamove':
+      return { name: 'Ahamove (Giao Hỏa Tốc)', label: 'Ahamove (Hỏa Tốc)', color: 'text-orange-600 bg-orange-50 dark:bg-orange-950/40' };
+    case 'grab_express':
+      return { name: 'GrabExpress', label: 'GrabExpress', color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40' };
+    case 'viettel_post':
+      return { name: 'ViettelPost', label: 'ViettelPost', color: 'text-red-600 bg-red-50 dark:bg-red-950/40' };
+    case 'ghtk':
+      return { name: 'Giao Hàng Tiết Kiệm (GHTK)', label: 'GHTK', color: 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40' };
+    case 'shipper_xuong':
+      return { name: 'Shipper Xưởng Giao Tận Nơi', label: 'Shipper Xưởng', color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40' };
+    case 'khach_lay_tai_xuong':
+    default:
+      return { name: 'Khách Lấy Tại Xưởng', label: 'Lấy Tại Xưởng', color: 'text-purple-600 bg-purple-50 dark:bg-purple-950/40' };
+  }
+};
+
+export const getShippingStatusInfo = (status?: string) => {
+  switch (status) {
+    case 'giao_thanh_cong':
+      return { label: 'Đã Giao Thành Công', badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' };
+    case 'dang_giao':
+      return { label: 'Shipper Đang Giao', badge: 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300' };
+    case 'da_ban_giao_shipper':
+      return { label: 'Đã Bàn Giao Vận Chuyển', badge: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300' };
+    case 'that_bai_hoan_ve':
+      return { label: 'Giao Thất Bại / Hoàn Về', badge: 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300' };
+    case 'cho_dong_goi':
+    default:
+      return { label: 'Chờ Đóng Gói Xuất Xưởng', badge: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' };
+  }
+};
+
 export const formatShippingInfoText = (order: {
   customerName: string;
   customerPhone: string;
@@ -254,4 +322,42 @@ TIỀN THU HỘ (COD): ${remainingCod > 0 ? `${formatNumber(remainingCod)} VNĐ`
 NỘI DUNG HÀNG: [${order.orderCode}] ${productSummary}
 GHI CHÚ GIAO HÀNG: Cho khách xem hàng, không thử. Hàng quà tặng in ấn / dễ vỡ xin nhẹ tay!${order.customerNotes ? ` (${order.customerNotes})` : ''}`;
 };
+
+export const generateDeliveryLabelCopy = formatShippingInfoText;
+
+export const getFinancialCategoryInfo = (category: string) => {
+  switch (category) {
+    // Thu
+    case 'thu_tien_coc':
+      return { label: 'Thu Tiền Cọc Đơn Hàng', type: 'thu', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800' };
+    case 'thu_tat_toan':
+      return { label: 'Thu Tất Toán / Giao Hàng COD', type: 'thu', badge: 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800' };
+    case 'thu_cong_no':
+      return { label: 'Thu Công Nợ B2B / Đại Lý', type: 'thu', badge: 'bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800' };
+    case 'thu_khac':
+      return { label: 'Khoản Thu Khác', type: 'thu', badge: 'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/60 dark:text-green-300 dark:border-green-800' };
+    // Chi
+    case 'chi_nhap_phoi':
+      return { label: 'Chi Mua Phôi Quà Tặng', type: 'chi', badge: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800' };
+    case 'chi_nhap_vat_tu_muc':
+      return { label: 'Chi Mua Vật Tư / Mực / Decal', type: 'chi', badge: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800' };
+    case 'chi_dien_nuoc_3pha':
+      return { label: 'Tiền Điện 3 Pha & Nước Xưởng', type: 'chi', badge: 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-800' };
+    case 'chi_thue_mat_bang':
+      return { label: 'Thuê Mặt Bằng Xưởng In', type: 'chi', badge: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800' };
+    case 'chi_luong_tho_in':
+      return { label: 'Lương & Phụ Cấp Thợ In', type: 'chi', badge: 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800' };
+    case 'chi_bao_tri_may':
+      return { label: 'Bảo Trì / Linh Kiện Máy Móc', type: 'chi', badge: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800' };
+    case 'chi_van_chuyen_ship':
+      return { label: 'Cước Vận Chuyển / Ship Đơn', type: 'chi', badge: 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800' };
+    case 'chi_hao_hut_in':
+      return { label: 'Bù Hao Hụt Hỏng Phôi In', type: 'chi', badge: 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800' };
+    case 'chi_khac':
+    default:
+      return { label: 'Chi Phí Vận Hành Khác', type: 'chi', badge: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700' };
+  }
+};
+
+
 
