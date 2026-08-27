@@ -95,7 +95,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const carrierInfo = getCarrierInfo(order.shippingInfo?.carrier || 'ahamove');
   const shippingStatusInfo = getShippingStatusInfo(order.shippingInfo?.status || 'cho_dong_goi');
 
-  const STAGES: OrderStatus[] = ['tiep_nhan', 'duyet_mockup', 'che_ban', 'dang_in', 'gia_cong', 'hoan_tat'];
+  const STAGES: OrderStatus[] = ['dang_thiet_ke', 'da_in_cho_ep', 'da_ep_cho_giao', 'dang_giao'];
   const bomReport = calculateOrderBOM(order);
 
   // Filter defects for this order
@@ -380,7 +380,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                 Công Đoạn Sản Xuất Xưởng Hiện Tại:
               </label>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {STAGES.map((st, idx) => {
                   const sInfo = getOrderStatusInfo(st);
                   const isCurrent = order.status === st;

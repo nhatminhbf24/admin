@@ -32,59 +32,55 @@ export const formatDateTime = (dateStr: string): string => {
 
 export const getOrderStatusInfo = (status: OrderStatus) => {
   switch (status) {
+    case 'dang_thiet_ke':
     case 'tiep_nhan':
+    case 'duyet_mockup':
       return {
-        label: 'Tiếp nhận & Báo giá',
+        label: '1. Đang thiết kế',
         bg: 'bg-blue-50 dark:bg-blue-950/40',
         text: 'text-blue-700 dark:text-blue-400',
         border: 'border-blue-200 dark:border-blue-800',
         dot: 'bg-blue-500',
         stepIndex: 0,
       };
-    case 'duyet_mockup':
+    case 'da_in_cho_ep':
+    case 'che_ban':
+    case 'dang_in':
       return {
-        label: 'Chờ duyệt Mockup',
+        label: '2. Đã in / Chờ ép',
         bg: 'bg-amber-50 dark:bg-amber-950/40',
         text: 'text-amber-700 dark:text-amber-400',
         border: 'border-amber-200 dark:border-amber-800',
         dot: 'bg-amber-500',
         stepIndex: 1,
       };
-    case 'che_ban':
+    case 'da_ep_cho_giao':
+    case 'gia_cong':
       return {
-        label: 'Chế bản / Set máy',
+        label: '3. Đã ép / Chờ Giao',
         bg: 'bg-purple-50 dark:bg-purple-950/40',
         text: 'text-purple-700 dark:text-purple-400',
         border: 'border-purple-200 dark:border-purple-800',
         dot: 'bg-purple-500',
         stepIndex: 2,
       };
-    case 'dang_in':
+    case 'dang_giao':
       return {
-        label: 'Đang in ấn / Khắc',
-        bg: 'bg-indigo-50 dark:bg-indigo-950/40',
-        text: 'text-indigo-700 dark:text-indigo-400',
-        border: 'border-indigo-200 dark:border-indigo-800',
-        dot: 'bg-indigo-500',
-        stepIndex: 3,
-      };
-    case 'gia_cong':
-      return {
-        label: 'Gia công & QC',
-        bg: 'bg-orange-50 dark:bg-orange-950/40',
-        text: 'text-orange-700 dark:text-orange-400',
-        border: 'border-orange-200 dark:border-orange-800',
-        dot: 'bg-orange-500',
-        stepIndex: 4,
-      };
-    case 'hoan_tat':
-      return {
-        label: 'Đã hoàn tất / Giao',
+        label: '4. Đang giao',
         bg: 'bg-emerald-50 dark:bg-emerald-950/40',
         text: 'text-emerald-700 dark:text-emerald-400',
         border: 'border-emerald-200 dark:border-emerald-800',
         dot: 'bg-emerald-500',
-        stepIndex: 5,
+        stepIndex: 3,
+      };
+    case 'hoan_tat':
+      return {
+        label: 'Đã hoàn tất / Đã lưu trữ',
+        bg: 'bg-slate-100 dark:bg-slate-800',
+        text: 'text-slate-700 dark:text-slate-300',
+        border: 'border-slate-200 dark:border-slate-700',
+        dot: 'bg-slate-500',
+        stepIndex: 4,
       };
     case 'huy_don':
       return {

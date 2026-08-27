@@ -1,11 +1,16 @@
 export type OrderStatus = 
-  | 'tiep_nhan'      // Tiếp nhận & Báo giá
-  | 'duyet_mockup'    // Chờ duyệt mockup thiết kế
-  | 'che_ban'         // Đang chế bản / Xuất phim / Set máy
-  | 'dang_in'         // Đang in ấn / ép nhiệt / in ảnh
-  | 'gia_cong'        // Gia công cắt bế, cán màng, QC & Đóng gói
-  | 'hoan_tat'        // Đã hoàn tất & Giao hàng
-  | 'huy_don';        // Hủy đơn
+  | 'dang_thiet_ke'   // 1. Đang thiết kế
+  | 'da_in_cho_ep'    // 2. Đã in / Chờ ép
+  | 'da_ep_cho_giao'  // 3. Đã ép / Chờ Giao
+  | 'dang_giao'       // 4. Đang giao
+  | 'hoan_tat'        // Đã hoàn tất & Nghiệm thu
+  | 'huy_don'         // Hủy đơn
+  // Backward compatibility
+  | 'tiep_nhan'
+  | 'duyet_mockup'
+  | 'che_ban'
+  | 'dang_in'
+  | 'gia_cong';
 
 export type PrintServiceGroup = 'chuyen_nhiet' | 'in_anh_thuong';
 

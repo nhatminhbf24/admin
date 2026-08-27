@@ -51,12 +51,10 @@ interface OrdersViewProps {
 }
 
 const KANBAN_STAGES: { status: OrderStatus; label: string; desc: string; color: string }[] = [
-  { status: 'tiep_nhan', label: '1. Tiếp Nhận & Báo Giá', desc: 'Đơn mới tạo, tính giá phôi & in', color: 'border-blue-500' },
-  { status: 'duyet_mockup', label: '2. Chờ Duyệt Mockup', desc: 'Gửi file demo khách duyệt logo', color: 'border-amber-500' },
-  { status: 'che_ban', label: '3. Chế Bản & Set Máy', desc: 'Xuất phim, pha mực, gá khuôn in', color: 'border-purple-500' },
-  { status: 'dang_in', label: '4. Đang In Ấn / Khắc', desc: 'Chạy máy UV, Laser, Ép nhiệt, DTF', color: 'border-indigo-500' },
-  { status: 'gia_cong', label: '5. Gia Công & QC', desc: 'Sấy nhiệt, lau sạch, hộp xi nhung', color: 'border-orange-500' },
-  { status: 'hoan_tat', label: '6. Đã Hoàn Tất / Giao', desc: 'Khách nghiệm thu & tất toán', color: 'border-emerald-500' },
+  { status: 'dang_thiet_ke', label: '1. Đang thiết kế', desc: 'Thiết kế mockup & duyệt mẫu qua Zalo', color: 'border-blue-500' },
+  { status: 'da_in_cho_ep', label: '2. Đã in / Chờ ép', desc: 'Đã in giấy nhiệt/decal, chờ lên máy ép', color: 'border-amber-500' },
+  { status: 'da_ep_cho_giao', label: '3. Đã ép / Chờ Giao', desc: 'Đã ép xong, kiểm tra QC & đóng gói', color: 'border-purple-500' },
+  { status: 'dang_giao', label: '4. Đang giao', desc: 'Shipper đang giao hàng cho khách', color: 'border-emerald-500' },
 ];
 
 export const OrdersView: React.FC<OrdersViewProps> = ({
@@ -166,7 +164,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
             <Printer className="w-5 h-5 text-blue-600" /> Quản Lý Đơn Hàng & Duyệt Mẫu In (Proofing)
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Quy trình sản xuất 6 bước khép kín, duyệt mockup 2D online và theo dõi vận chuyển.
+            Quy trình xưởng 4 bước tinh gọn: Đang thiết kế ➔ Đã in / Chờ ép ➔ Đã ép / Chờ giao ➔ Đang giao.
           </p>
         </div>
 
@@ -181,7 +179,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                   : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
               }`}
             >
-              <LayoutGrid className="w-4 h-4" /> Kanban Pipeline
+              <LayoutGrid className="w-4 h-4" /> Kanban Pipeline (4 Cột)
             </button>
             <button
               onClick={() => setViewMode('table')}
@@ -283,13 +281,11 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           onChange={(e) => setStatusFilter(e.target.value)}
           className="text-xs bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 outline-none focus:border-blue-500 font-medium"
         >
-          <option value="all">Tất cả công đoạn xưởng</option>
-          <option value="tiep_nhan">1. Tiếp nhận & Báo giá</option>
-          <option value="duyet_mockup">2. Chờ duyệt Mockup</option>
-          <option value="che_ban">3. Chế bản & Set máy</option>
-          <option value="dang_in">4. Đang in ấn / Khắc</option>
-          <option value="gia_cong">5. Gia công & QC</option>
-          <option value="hoan_tat">6. Đã hoàn tất / Giao</option>
+          <option value="all">Tất cả 4 công đoạn xưởng</option>
+          <option value="dang_thiet_ke">1. Đang thiết kế</option>
+          <option value="da_in_cho_ep">2. Đã in / Chờ ép</option>
+          <option value="da_ep_cho_giao">3. Đã ép / Chờ Giao</option>
+          <option value="dang_giao">4. Đang giao</option>
         </select>
 
         <span className="text-xs text-slate-500 dark:text-slate-400 font-medium ml-auto">
@@ -299,9 +295,15 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
 
       {/* KANBAN BOARD VIEW */}
       {viewMode === 'kanban' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
           {KANBAN_STAGES.map((col) => {
-            const stageOrders = filteredOrders.filter((o) => o.status === col.status);
+            const stageOrders = filteredOrders.filter((o) => {
+              if (col.status === 'dang_thiet_ke') return o.status === 'dang_thiet_ke' || o.status === 'tiep_nhan' || o.status === 'duyet_mockup';
+              if (col.status === 'da_in_cho_ep') return o.status === 'da_in_cho_ep' || o.status === 'che_ban' || o.status === 'dang_in';
+              if (col.status === 'da_ep_cho_giao') return o.status === 'da_ep_cho_giao' || o.status === 'gia_cong';
+              if (col.status === 'dang_giao') return o.status === 'dang_giao';
+              return o.status === col.status;
+            });
             const isColumnTarget = dragOverColumn === col.status;
 
             return (
@@ -504,13 +506,23 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                           </div>
 
                           {/* Quick Move Button */}
-                          {col.status !== 'hoan_tat' && (
+                          {col.status === 'dang_giao' ? (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const currentIndex = KANBAN_STAGES.findIndex((s) => s.status === ord.status);
-                                if (currentIndex < KANBAN_STAGES.length - 1) {
-                                  onUpdateOrderStatus(ord.id, KANBAN_STAGES[currentIndex + 1].status);
+                                onUpdateOrderStatus(ord.id, 'hoan_tat');
+                              }}
+                              className="w-full mt-2 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-lg flex items-center justify-center gap-1 transition-colors border border-emerald-200 dark:border-emerald-800"
+                            >
+                              <span>✓ Hoàn Tất & Lưu Trữ</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const stageIndex = KANBAN_STAGES.findIndex((s) => s.status === col.status);
+                                if (stageIndex >= 0 && stageIndex < KANBAN_STAGES.length - 1) {
+                                  onUpdateOrderStatus(ord.id, KANBAN_STAGES[stageIndex + 1].status);
                                 }
                               }}
                               className="w-full mt-2 py-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded-lg flex items-center justify-center gap-1 transition-colors"

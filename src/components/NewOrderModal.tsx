@@ -164,7 +164,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
       customerPhone,
       customerEmail: '',
       serviceGroup: selectedProd.serviceGroup,
-      status: 'tiep_nhan',
+      status: 'dang_thiet_ke',
       priority,
       paymentStatus,
       totalAmount: total,
