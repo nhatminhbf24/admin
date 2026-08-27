@@ -1,0 +1,6 @@
+{
+  "name": "GiftPrint - Quản Lý In Ấn Quà Tặng",
+  "description": "Bảng điều khiển quản trị chuyên nghiệp cho xưởng in ấn và quà tặng doanh nghiệp theo phong cách TailAdmin.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
