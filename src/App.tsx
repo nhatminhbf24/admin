@@ -37,7 +37,6 @@ import {
   InventoryTransactionLog,
   FinancialVoucher,
 } from './types';
-import { deductBOMFromInventory } from './utils/bomCalculator';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
@@ -99,39 +98,24 @@ export default function App() {
     }
   }, [toastMessage]);
 
-  // Handler: Add new order with automatic BOM deduction
+  // Handler: Add new order
   const handleSaveNewOrder = (newOrder: Order) => {
     setOrders((prev) => [newOrder, ...prev]);
 
-    // Tự động trừ định mức vật tư phụ trợ (Giấy, decal, màng cán, mực) & phôi sản phẩm
-    const { updatedProducts, updatedMaterials } = deductBOMFromInventory(
-      newOrder,
-      products,
-      materials
+    // Trừ tồn kho phôi sản phẩm tương ứng
+    setProducts((prev) =>
+      prev.map((p) => {
+        const item = newOrder.items.find((it) => it.sku === p.sku);
+        if (item) {
+          return { ...p, stockQuantity: Math.max(0, p.stockQuantity - item.quantity) };
+        }
+        return p;
+      })
     );
-    setProducts(updatedProducts);
-    setMaterials(updatedMaterials);
 
     setToastMessage({
       title: 'Tạo đơn hàng thành công!',
-      desc: `Đã tự động trừ phôi & định mức vật tư tiêu hao cho đơn ${newOrder.orderCode}.`,
-      type: 'success',
-    });
-  };
-
-  // Handler: Manual BOM deduction trigger from Order Details Modal
-  const handleDeductBOM = (order: Order) => {
-    const { updatedProducts, updatedMaterials } = deductBOMFromInventory(
-      order,
-      products,
-      materials
-    );
-    setProducts(updatedProducts);
-    setMaterials(updatedMaterials);
-
-    setToastMessage({
-      title: 'Đã xuất kho vật tư!',
-      desc: `Đã trừ định mức vật tư theo BOM cho đơn ${order.orderCode}.`,
+      desc: `Đã lưu đơn ${newOrder.orderCode} vào hệ thống xưởng.`,
       type: 'success',
     });
   };
@@ -357,6 +341,16 @@ export default function App() {
       desc: `Đã lưu tiến độ duyệt mockup cho đơn hàng.`,
       type: 'success',
     });
+  };
+
+  // Handler: Update order notes / description
+  const handleUpdateOrderNotes = (orderId: string, productionNotes: string) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, productionNotes } : o))
+    );
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder((prev) => (prev ? { ...prev, productionNotes } : null));
+    }
   };
 
   // Handler: Update Shipping Tracking info (Carrier, Tracking Code, COD status)
@@ -668,6 +662,7 @@ export default function App() {
           onClose={() => setSelectedOrder(null)}
           onUpdateStatus={handleUpdateOrderStatus}
           onUpdatePayment={handleUpdatePaymentStatus}
+          onUpdateNotes={handleUpdateOrderNotes}
           onUpdateProofDesign={handleUpdateProofDesign}
           onUpdateShippingInfo={handleUpdateShippingInfo}
           onOpenJobTicket={(ord) => {
@@ -678,7 +673,6 @@ export default function App() {
             setSelectedOrder(null);
             setDeliveryReceiptOrder(ord);
           }}
-          onDeductBOM={handleDeductBOM}
           onOpenDefectModal={handleOpenDefectModal}
           onArchiveOrder={handleArchiveOrder}
         />

@@ -47,19 +47,35 @@ const COLOR_THEMES = [
 interface DeliveryReceiptModalProps {
   order: Order | null;
   onClose: () => void;
+  initialPaperSize?: PaperSize;
+  initialReceiptTitle?: string;
+  modalTitle?: string;
+  initialShippingFee?: number;
 }
 
-export const DeliveryReceiptModal: React.FC<DeliveryReceiptModalProps> = ({ order, onClose }) => {
+export const DeliveryReceiptModal: React.FC<DeliveryReceiptModalProps> = ({
+  order,
+  onClose,
+  initialPaperSize = 'A6',
+  initialReceiptTitle,
+  modalTitle,
+  initialShippingFee,
+}) => {
   if (!order) return null;
 
-  const [paperSize, setPaperSize] = useState<PaperSize>('A6');
+  const [paperSize, setPaperSize] = useState<PaperSize>(initialPaperSize);
   const [selectedTheme, setSelectedTheme] = useState(COLOR_THEMES[0]);
   const [showSettings, setShowSettings] = useState(false);
   const [includeVietQr, setIncludeVietQr] = useState(true);
 
   // Editable parameters for flexible printing
-  const [shopInfo, setShopInfo] = useState<ShopInfo>(DEFAULT_SHOP_INFO);
-  const [shippingFee, setShippingFee] = useState<number>(0);
+  const [shopInfo, setShopInfo] = useState<ShopInfo>({
+    ...DEFAULT_SHOP_INFO,
+    receiptTitle: initialReceiptTitle || DEFAULT_SHOP_INFO.receiptTitle,
+  });
+  const [shippingFee, setShippingFee] = useState<number>(
+    initialShippingFee !== undefined ? initialShippingFee : (order.shippingFeeCollected || 0)
+  );
   const [customDeposit, setCustomDeposit] = useState<number>(order.depositAmount || 0);
 
   // Financial calculations
@@ -126,7 +142,7 @@ export const DeliveryReceiptModal: React.FC<DeliveryReceiptModalProps> = ({ orde
             </div>
             <div>
               <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                Xuất Phiếu Giao Hàng / Hóa Đơn Khổ {paperSize}
+                {modalTitle ? `${modalTitle} Khổ ${paperSize}` : `Xuất Phiếu Giao Hàng / Hóa Đơn Khổ ${paperSize}`}
               </h3>
               <p className="text-[11px] text-slate-400">
                 Đơn: <span className="text-rose-400 font-mono font-bold">{order.orderCode}</span> • {order.customerName}

@@ -50,11 +50,11 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
 
   // Optional fields (Có giá trị mặc định hợp lý)
   const [customerCompany, setCustomerCompany] = useState(initialQuoteData?.customerCompany || '');
-  const [shippingAddress, setShippingAddress] = useState(initialQuoteData?.shippingAddress || 'Nhận trực tiếp tại xưởng in');
+  const [shippingAddress, setShippingAddress] = useState(initialQuoteData?.customerAddress || initialQuoteData?.shippingAddress || 'Nhận trực tiếp tại xưởng in');
   const [priority, setPriority] = useState<PriorityLevel>(initialQuoteData?.isUrgent ? 'hoa_toc' : 'binh_thuong');
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('da_coc_50');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('chua_coc');
   const [technique, setTechnique] = useState<PrintTechnique>(initialQuoteData?.technique || 'chuyen_nhiet');
-  const [shippingFeeCollected, setShippingFeeCollected] = useState<number>(0);
+  const [shippingFeeCollected, setShippingFeeCollected] = useState<number>(initialQuoteData?.shippingFee || 0);
   const [notes, setNotes] = useState('');
 
   // Batch names input (Danh sách tên học sinh / thành viên)
@@ -174,6 +174,13 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
       createdAt: new Date().toISOString(),
       deadline: `${deadline}T17:00:00Z`,
       shippingAddress: shippingAddress || 'Nhận trực tiếp tại xưởng in',
+      shippingInfo: {
+        carrier: 'shipper_xuong',
+        shippingFee: shippingFeeCollected || 0,
+        status: 'cho_dong_goi',
+        codAmount: Math.max(0, total + (shippingFeeCollected || 0) - deposit),
+        isCodCollected: false,
+      },
       productionNotes: notes || (selectedProd.serviceGroup === 'chuyen_nhiet' 
         ? 'Ép nhiệt đúng nhiệt độ và thời gian theo phiếu xưởng.' 
         : 'In ảnh sắc nét, cán màng bảo vệ, cắt bế cẩn thận.'),

@@ -6,10 +6,10 @@ export interface BankAccountConfig {
 }
 
 export const DEFAULT_BANK_CONFIG: BankAccountConfig = {
-  bankId: 'MB',
-  bankName: 'Ngân hàng Quân Đội (MB Bank)',
-  accountNo: '0988112233',
-  accountName: 'XUONG IN GIFTPRINT PRO',
+  bankId: 'BIDV',
+  bankName: 'Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)',
+  accountNo: '8894820733',
+  accountName: 'TRAN THI THANH DUNG',
 };
 
 export const SUPPORTED_BANKS = [

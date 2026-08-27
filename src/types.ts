@@ -101,6 +101,7 @@ export interface ProofDesignInfo {
 export interface ShippingTrackingInfo {
   carrier: ShippingCarrier;
   trackingCode?: string;
+  shippingFee?: number; // Giá ship (đặc biệt khi giao bằng Shipper Xưởng)
   codAmount?: number;
   isCodCollected?: boolean;
   status: ShippingStatus;

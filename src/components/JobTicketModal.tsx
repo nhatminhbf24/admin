@@ -20,7 +20,6 @@ import {
 import { Order } from '../types';
 import { formatCurrency, formatDate, formatDateTime, getOrderStatusInfo, getPriorityInfo } from '../utils/formatters';
 import { PRINT_TECHNIQUES_INFO, PRODUCT_CATEGORIES_INFO } from '../data/mockData';
-import { calculateOrderBOM } from '../utils/bomCalculator';
 import { generateVietQrUrl, formatPaymentContent, DEFAULT_BANK_CONFIG } from '../utils/vietQrHelper';
 
 interface JobTicketModalProps {
@@ -34,7 +33,6 @@ export const JobTicketModal: React.FC<JobTicketModalProps> = ({ order, onClose }
   const priorityInfo = getPriorityInfo(order.priority);
   const statusInfo = getOrderStatusInfo(order.status);
   const isSublimation = order.serviceGroup === 'chuyen_nhiet';
-  const bomReport = calculateOrderBOM(order);
 
   // Sinh VietQR cho phiếu xưởng
   const qrTransferContent = formatPaymentContent(order.orderCode, order.customerName, 'full');
@@ -89,7 +87,7 @@ export const JobTicketModal: React.FC<JobTicketModalProps> = ({ order, onClose }
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1">Xưởng sản xuất: Lô B3 Xưởng In Quà Tặng Theo Yêu Cầu | Hotline Kỹ Thuật: 0988.112.233</p>
-              <p className="text-xs font-bold text-slate-900 uppercase mt-1">PHIẾU LỆNH SẢN XUẤT & ĐỊNH MỨC VẬT TƯ (BOM)</p>
+              <p className="text-xs font-bold text-slate-900 uppercase mt-1">PHIẾU LỆNH SẢN XUẤT XƯỞNG IN</p>
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
@@ -203,28 +201,6 @@ export const JobTicketModal: React.FC<JobTicketModalProps> = ({ order, onClose }
                   ))}
                 </tbody>
               </table>
-            </div>
-          </div>
-
-          {/* BOM Material Consumption Checklist */}
-          <div className="p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900 rounded-xl text-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <strong className="text-purple-900 dark:text-purple-300 uppercase flex items-center gap-1.5">
-                <Package className="w-4 h-4 text-purple-600" /> Bảng Định Mức Vật Tư Xuất Xưởng (BOM Checklist):
-              </strong>
-              <span className="text-[11px] text-purple-700 font-semibold">Thợ phụ trách ký nhận khi lấy phôi & giấy</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-              {bomReport.totalConsumptions.map((b, bIdx) => (
-                <div key={bIdx} className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-lg border border-purple-100">
-                  <span className="font-medium text-slate-800 dark:text-slate-200">
-                    [ ] {b.materialName}
-                  </span>
-                  <span className="font-bold text-purple-700">
-                    {b.totalQuantity} {b.unit}
-                  </span>
-                </div>
-              ))}
             </div>
           </div>
 

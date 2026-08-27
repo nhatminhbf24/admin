@@ -275,7 +275,7 @@ export const DefectScrapModal: React.FC<DefectScrapModalProps> = ({
                 onChange={(e) => setDeductConsumables(e.target.checked)}
                 className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500"
               />
-              <span>Tự động trừ thêm Giấy in & Mực in hao phí (BOM)</span>
+              <span>Tự động trừ thêm Giấy in & Mực in hao phí</span>
             </label>
             <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400">
               Ước tính hao hụt: {formatCurrency(estimatedLoss)}
