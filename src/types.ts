@@ -130,6 +130,11 @@ export interface Order {
   items: OrderItem[];
   shippingAddress: string;
   shippingFeeCollected?: number; // Tiền ship thu của khách (ghi chú Ship)
+  discountPercent?: number; // % Chiết khấu (VD: 5%, 10%)
+  discountAmount?: number; // Số tiền chiết khấu (VNĐ)
+  includeVAT?: boolean; // Xuất hóa đơn VAT (8%)
+  vatAmount?: number; // Tiền thuế VAT (VNĐ)
+  urgentFee?: number; // Phụ phí in hỏa tốc (+20%)
   productionNotes?: string;
   proofDesign?: ProofDesignInfo;
   shippingInfo?: ShippingTrackingInfo;

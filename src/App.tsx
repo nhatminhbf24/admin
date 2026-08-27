@@ -36,6 +36,7 @@ import {
   DefectReason,
   InventoryTransactionLog,
   FinancialVoucher,
+  PriorityLevel,
 } from './types';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 
@@ -353,6 +354,45 @@ export default function App() {
     }
   };
 
+  // Handler: Update customer info (Name, Phone, Address)
+  const handleUpdateCustomerInfo = (
+    orderId: string,
+    customerData: {
+      customerName?: string;
+      customerPhone?: string;
+      shippingAddress?: string;
+    }
+  ) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, ...customerData } : o))
+    );
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder((prev) => (prev ? { ...prev, ...customerData } : null));
+    }
+  };
+
+  // Handler: Update order pricing modifiers (Discount %, VAT, Urgent, Total)
+  const handleUpdateOrderPricing = (
+    orderId: string,
+    pricingData: {
+      totalAmount: number;
+      discountPercent?: number;
+      discountAmount?: number;
+      includeVAT?: boolean;
+      vatAmount?: number;
+      urgentFee?: number;
+      priority?: PriorityLevel;
+      shippingFeeCollected?: number;
+    }
+  ) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, ...pricingData } : o))
+    );
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder((prev) => (prev ? { ...prev, ...pricingData } : null));
+    }
+  };
+
   // Handler: Update Shipping Tracking info (Carrier, Tracking Code, COD status)
   const handleUpdateShippingInfo = (orderId: string, shipping: any) => {
     setOrders((prev) =>
@@ -663,6 +703,8 @@ export default function App() {
           onUpdateStatus={handleUpdateOrderStatus}
           onUpdatePayment={handleUpdatePaymentStatus}
           onUpdateNotes={handleUpdateOrderNotes}
+          onUpdateCustomerInfo={handleUpdateCustomerInfo}
+          onUpdatePricing={handleUpdateOrderPricing}
           onUpdateProofDesign={handleUpdateProofDesign}
           onUpdateShippingInfo={handleUpdateShippingInfo}
           onOpenJobTicket={(ord) => {
