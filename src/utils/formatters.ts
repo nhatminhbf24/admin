@@ -163,3 +163,95 @@ export const getPaymentStatusInfo = (status: PaymentStatus) => {
       };
   }
 };
+
+export const numberToVietnameseWords = (number: number): string => {
+  if (number === 0) return 'Không đồng.';
+  if (number < 0) return 'Âm ' + numberToVietnameseWords(Math.abs(number));
+
+  const units = ['', 'nghìn', 'triệu', 'tỷ', 'nghìn tỷ', 'triệu tỷ'];
+  const digits = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
+
+  const readThreeDigits = (n: number, isHighestBlock: boolean = false): string => {
+    let result = '';
+    const hundred = Math.floor(n / 100);
+    const remainder = n % 100;
+    const ten = Math.floor(remainder / 10);
+    const unit = remainder % 10;
+
+    if (hundred > 0 || !isHighestBlock) {
+      result += digits[hundred] + ' trăm ';
+    }
+
+    if (ten > 1) {
+      result += digits[ten] + ' mươi ';
+      if (unit === 1) result += 'mốt ';
+      else if (unit === 4) result += 'tư ';
+      else if (unit === 5) result += 'lăm ';
+      else if (unit > 0) result += digits[unit] + ' ';
+    } else if (ten === 1) {
+      result += 'mười ';
+      if (unit === 5) result += 'lăm ';
+      else if (unit > 0) result += digits[unit] + ' ';
+    } else {
+      if (unit > 0) {
+        if (hundred > 0 || !isHighestBlock) {
+          result += 'lẻ ' + digits[unit] + ' ';
+        } else {
+          result += digits[unit] + ' ';
+        }
+      }
+    }
+
+    return result.trim();
+  };
+
+  let num = Math.floor(number);
+  const blocks: number[] = [];
+  while (num > 0) {
+    blocks.push(num % 1000);
+    num = Math.floor(num / 1000);
+  }
+
+  let words = '';
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const block = blocks[i];
+    if (block > 0) {
+      const isHighest = i === blocks.length - 1;
+      const blockStr = readThreeDigits(block, isHighest);
+      words += blockStr + ' ' + (units[i] ? units[i] + ' ' : '');
+    }
+  }
+
+  words = words.trim();
+  if (words.length > 0) {
+    words = words.charAt(0).toUpperCase() + words.slice(1) + ' đồng chẵn.';
+  } else {
+    words = 'Không đồng.';
+  }
+
+  return words;
+};
+
+export const formatShippingInfoText = (order: {
+  customerName: string;
+  customerPhone: string;
+  shippingAddress: string;
+  totalAmount: number;
+  depositAmount?: number;
+  orderCode: string;
+  items?: { productName: string; quantity: number }[];
+  customerNotes?: string;
+}): string => {
+  const remainingCod = Math.max(0, order.totalAmount - (order.depositAmount || 0));
+  const productSummary = order.items && order.items.length > 0 
+    ? order.items.map(i => `${i.productName} (SL: ${i.quantity})`).join(', ')
+    : 'Hàng in ấn quà tặng';
+
+  return `HỌ TÊN: ${order.customerName}
+SĐT: ${order.customerPhone}
+ĐỊA CHỈ: ${order.shippingAddress || 'Nhận tại xưởng'}
+TIỀN THU HỘ (COD): ${remainingCod > 0 ? `${formatNumber(remainingCod)} VNĐ` : '0 VNĐ (Đã thanh toán đủ)'}
+NỘI DUNG HÀNG: [${order.orderCode}] ${productSummary}
+GHI CHÚ GIAO HÀNG: Cho khách xem hàng, không thử. Hàng quà tặng in ấn / dễ vỡ xin nhẹ tay!${order.customerNotes ? ` (${order.customerNotes})` : ''}`;
+};
+

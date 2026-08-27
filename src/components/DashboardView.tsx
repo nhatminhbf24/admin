@@ -257,77 +257,50 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div>
             <h3 className="font-bold text-base text-slate-900 dark:text-white">
-              Tỷ Trọng Công Nghệ In
+              Tỷ Trọng Doanh Thu 2 Mảng Sản Xuất
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Phân bổ số lượng đơn hàng theo công nghệ
+              Phân bổ giữa In Chuyển Nhiệt Quà Tặng & In Ảnh / Nhãn Vở
             </p>
           </div>
 
           <div className="my-4 space-y-3.5">
             <div>
               <div className="flex justify-between text-xs font-semibold mb-1">
-                <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-blue-500" /> In UV Kỹ Thuật Số
+                <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5 font-bold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> 🔥 In Chuyển Nhiệt (11 Nhóm Phôi)
                 </span>
-                <span className="text-slate-900 dark:text-white">38% (14 đơn)</span>
+                <span className="text-amber-600 dark:text-amber-400 font-bold">62% (Ly sứ, Áo, Móc khóa, Tranh đá)</span>
               </div>
-              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 rounded-full" style={{ width: '38%' }} />
+              <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-amber-500 rounded-full" style={{ width: '62%' }} />
               </div>
             </div>
 
             <div>
               <div className="flex justify-between text-xs font-semibold mb-1">
-                <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" /> Khắc Laser CNC
+                <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5 font-bold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600" /> 📸 In Ảnh & Nhãn Vở Học Sinh
                 </span>
-                <span className="text-slate-900 dark:text-white">28% (10 đơn)</span>
+                <span className="text-blue-600 dark:text-blue-400 font-bold">38% (Nhãn vở, Polaroid, Khung ảnh)</span>
               </div>
-              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 rounded-full" style={{ width: '28%' }} />
+              <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-600 rounded-full" style={{ width: '38%' }} />
               </div>
             </div>
 
-            <div>
-              <div className="flex justify-between text-xs font-semibold mb-1">
-                <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-500" /> In Chuyển Nhiệt Cốc
-                </span>
-                <span className="text-slate-900 dark:text-white">16% (6 đơn)</span>
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2 text-[11px]">
+              <div className="p-2 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 text-amber-900 dark:text-amber-300">
+                <span className="font-bold">Top Chuyển Nhiệt:</span> Ly sứ quai tim, Móc khóa mica 2 mặt, Tranh đá vát viền
               </div>
-              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-amber-500 rounded-full" style={{ width: '16%' }} />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-xs font-semibold mb-1">
-                <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-indigo-500" /> In DTF Áo & Vải
-                </span>
-                <span className="text-slate-900 dark:text-white">12% (4 đơn)</span>
-              </div>
-              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 rounded-full" style={{ width: '12%' }} />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-xs font-semibold mb-1">
-                <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-rose-500" /> Ép Nhũ & Dập Kim
-                </span>
-                <span className="text-slate-900 dark:text-white">6% (2 đơn)</span>
-              </div>
-              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-rose-500 rounded-full" style={{ width: '6%' }} />
+              <div className="p-2 rounded-lg bg-blue-50/60 dark:bg-blue-950/30 text-blue-900 dark:text-blue-300">
+                <span className="font-bold">Top In Ảnh:</span> Set 36 nhãn vở bế demi Hologram, Ảnh Polaroid 6x9
               </div>
             </div>
           </div>
 
           <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs text-slate-500 dark:text-slate-400">
-            💡 <strong>Mẹo xưởng:</strong> Công nghệ in UV và Khắc Laser đem lại tỷ suất lợi nhuận cao nhất (trên 45%).
+            💡 <strong>Mẹo xưởng:</strong> Mùa tựu trường (Tháng 8-9) doanh thu nhãn vở & ảnh bé tăng 300%. Nên chuẩn bị sẵn cuộn decal bóc dán và màng Hologram 7 màu.
           </div>
         </div>
       </div>

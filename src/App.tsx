@@ -10,16 +10,21 @@ import { CustomersView } from './components/CustomersView';
 import { MachinesView } from './components/MachinesView';
 import { TailAdminGuideView } from './components/TailAdminGuideView';
 import { JobTicketModal } from './components/JobTicketModal';
+import { DeliveryReceiptModal } from './components/DeliveryReceiptModal';
 import { OrderDetailsModal } from './components/OrderDetailsModal';
 import { NewOrderModal } from './components/NewOrderModal';
+import { DefectScrapModal } from './components/DefectScrapModal';
 import {
   INITIAL_ORDERS,
   INITIAL_PRODUCTS,
   INITIAL_MACHINES,
   INITIAL_CUSTOMERS,
   INITIAL_MATERIALS,
+  INITIAL_DEFECT_LOGS,
 } from './data/mockData';
-import { Order, GiftProduct, MaterialInventory, OrderStatus, PaymentStatus } from './types';
+import { Order, GiftProduct, MaterialInventory, OrderStatus, PaymentStatus, DefectLog, DefectReason } from './types';
+import { deductBOMFromInventory } from './utils/bomCalculator';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
   // Theme state
@@ -31,19 +36,27 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [toastMessage, setToastMessage] = useState<{ title: string; desc: string; type: 'success' | 'warning' } | null>(null);
 
   // Core Data state
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [products, setProducts] = useState<GiftProduct[]>(INITIAL_PRODUCTS);
   const [materials, setMaterials] = useState<MaterialInventory[]>(INITIAL_MATERIALS);
+  const [defectLogs, setDefectLogs] = useState<DefectLog[]>(INITIAL_DEFECT_LOGS);
   const [customers, setCustomers] = useState(INITIAL_CUSTOMERS);
   const [machines, setMachines] = useState(INITIAL_MACHINES);
 
   // Modals state
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [jobTicketOrder, setJobTicketOrder] = useState<Order | null>(null);
+  const [deliveryReceiptOrder, setDeliveryReceiptOrder] = useState<Order | null>(null);
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState<boolean>(false);
   const [quotePrefillData, setQuotePrefillData] = useState<any>(null);
+
+  // Defect Modal state
+  const [isDefectModalOpen, setIsDefectModalOpen] = useState<boolean>(false);
+  const [defectTargetOrder, setDefectTargetOrder] = useState<Order | null>(null);
+  const [defectTargetSku, setDefectTargetSku] = useState<string | undefined>(undefined);
 
   // Sync Dark mode with DOM
   useEffect(() => {
@@ -54,17 +67,123 @@ export default function App() {
     }
   }, [darkMode]);
 
-  // Handler: Add new order
+  // Auto clear toast
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
+
+  // Handler: Add new order with automatic BOM deduction
   const handleSaveNewOrder = (newOrder: Order) => {
     setOrders((prev) => [newOrder, ...prev]);
-    // Deduct stock for the product
-    if (newOrder.items[0]) {
-      const prodSku = newOrder.items[0].sku;
-      const qty = newOrder.items[0].quantity;
-      setProducts((prev) =>
-        prev.map((p) => (p.sku === prodSku ? { ...p, stockQuantity: Math.max(0, p.stockQuantity - qty) } : p))
+
+    // Tự động trừ định mức vật tư phụ trợ (Giấy, decal, màng cán, mực) & phôi sản phẩm
+    const { updatedProducts, updatedMaterials } = deductBOMFromInventory(
+      newOrder,
+      products,
+      materials
+    );
+    setProducts(updatedProducts);
+    setMaterials(updatedMaterials);
+
+    setToastMessage({
+      title: 'Tạo đơn hàng thành công!',
+      desc: `Đã tự động trừ phôi & định mức vật tư tiêu hao cho đơn ${newOrder.orderCode}.`,
+      type: 'success',
+    });
+  };
+
+  // Handler: Manual BOM deduction trigger from Order Details Modal
+  const handleDeductBOM = (order: Order) => {
+    const { updatedProducts, updatedMaterials } = deductBOMFromInventory(
+      order,
+      products,
+      materials
+    );
+    setProducts(updatedProducts);
+    setMaterials(updatedMaterials);
+
+    setToastMessage({
+      title: 'Đã xuất kho vật tư!',
+      desc: `Đã trừ định mức vật tư theo BOM cho đơn ${order.orderCode}.`,
+      type: 'success',
+    });
+  };
+
+  // Handler: Open Defect / Scrap Modal
+  const handleOpenDefectModal = (orderId?: string, productSku?: string) => {
+    if (orderId) {
+      const target = orders.find((o) => o.id === orderId) || null;
+      setDefectTargetOrder(target);
+    } else {
+      setDefectTargetOrder(null);
+    }
+    setDefectTargetSku(productSku);
+    setIsDefectModalOpen(true);
+  };
+
+  // Handler: Submit Defect / Spoilage
+  const handleSubmitDefect = (defectData: {
+    orderId?: string;
+    orderCode?: string;
+    productId: string;
+    productName: string;
+    sku: string;
+    quantityScrapped: number;
+    reason: DefectReason;
+    customReasonNote?: string;
+    technicianName: string;
+    estimatedCostLoss: number;
+    deductConsumables: boolean;
+  }) => {
+    // 1. Decrement product blank stock
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === defectData.productId
+          ? { ...p, stockQuantity: Math.max(0, p.stockQuantity - defectData.quantityScrapped) }
+          : p
+      )
+    );
+
+    // 2. If deduct consumables, deduct ~1 A4 paper & ink per scrapped item
+    if (defectData.deductConsumables) {
+      setMaterials((prev) =>
+        prev.map((m) => {
+          if (m.category === 'giay_in_nhiet' || m.category === 'giay_anh_decal') {
+            return { ...m, quantity: Math.max(0, m.quantity - defectData.quantityScrapped) };
+          }
+          return m;
+        })
       );
     }
+
+    // 3. Append to defectLogs
+    const newLog: DefectLog = {
+      id: `defect-${Date.now()}`,
+      orderId: defectData.orderId,
+      orderCode: defectData.orderCode,
+      productId: defectData.productId,
+      productName: defectData.productName,
+      sku: defectData.sku,
+      quantityScrapped: defectData.quantityScrapped,
+      reason: defectData.reason,
+      customReasonNote: defectData.customReasonNote,
+      technicianName: defectData.technicianName,
+      estimatedCostLoss: defectData.estimatedCostLoss,
+      timestamp: new Date().toISOString(),
+      deductedStock: true,
+    };
+
+    setDefectLogs((prev) => [newLog, ...prev]);
+
+    // 4. Show reassurance Toast
+    setToastMessage({
+      title: `Báo in lại thành công: -${defectData.quantityScrapped} ${defectData.productName}`,
+      desc: `Đã tự động trừ phôi kho. Tiền thu của khách hàng ${defectData.orderCode ? `đơn ${defectData.orderCode}` : ''} giữ nguyên 100%.`,
+      type: 'warning',
+    });
   };
 
   // Handler: Update order status
@@ -105,6 +224,15 @@ export default function App() {
     );
   };
 
+  // Handler: Increment/Decrement product stock by delta
+  const handleUpdateProductStockDelta = (productId: string, delta: number) => {
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === productId ? { ...p, stockQuantity: Math.max(0, p.stockQuantity + delta) } : p
+      )
+    );
+  };
+
   // Handler: Add material
   const handleAddMaterial = (newMat: MaterialInventory) => {
     setMaterials((prev) => [newMat, ...prev]);
@@ -125,6 +253,29 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-200 max-w-md shadow-2xl">
+          <div
+            className={`p-4 rounded-2xl border flex items-start gap-3 backdrop-blur-md ${
+              toastMessage.type === 'success'
+                ? 'bg-emerald-900/90 border-emerald-700 text-white'
+                : 'bg-amber-900/90 border-amber-700 text-white'
+            }`}
+          >
+            {toastMessage.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0 mt-0.5" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-amber-300 shrink-0 mt-0.5" />
+            )}
+            <div>
+              <p className="font-bold text-xs">{toastMessage.title}</p>
+              <p className="text-[11px] opacity-90 mt-0.5 leading-relaxed">{toastMessage.desc}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* TailAdmin Navigation Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -181,6 +332,7 @@ export default function App() {
                 setIsNewOrderModalOpen(true);
               }}
               onPrintJobTicket={(ord) => setJobTicketOrder(ord)}
+              onPrintDeliveryReceipt={(ord) => setDeliveryReceiptOrder(ord)}
             />
           )}
 
@@ -201,9 +353,15 @@ export default function App() {
 
           {activeTab === 'inventory' && (
             <InventoryView
+              products={products}
               materials={materials}
+              defectLogs={defectLogs}
+              orders={orders}
+              onUpdateProductStock={handleUpdateProductStockDelta}
+              onUpdateMaterialQuantity={handleUpdateMaterialQuantity}
+              onOpenDefectModal={handleOpenDefectModal}
               onAddMaterial={handleAddMaterial}
-              onUpdateQuantity={handleUpdateMaterialQuantity}
+              onAddProduct={handleAddProduct}
             />
           )}
 
@@ -226,6 +384,7 @@ export default function App() {
       {selectedOrder && (
         <OrderDetailsModal
           order={selectedOrder}
+          defectLogs={defectLogs}
           onClose={() => setSelectedOrder(null)}
           onUpdateStatus={handleUpdateOrderStatus}
           onUpdatePayment={handleUpdatePaymentStatus}
@@ -233,6 +392,12 @@ export default function App() {
             setSelectedOrder(null);
             setJobTicketOrder(ord);
           }}
+          onOpenDeliveryReceipt={(ord) => {
+            setSelectedOrder(null);
+            setDeliveryReceiptOrder(ord);
+          }}
+          onDeductBOM={handleDeductBOM}
+          onOpenDefectModal={handleOpenDefectModal}
         />
       )}
 
@@ -241,6 +406,14 @@ export default function App() {
         <JobTicketModal
           order={jobTicketOrder}
           onClose={() => setJobTicketOrder(null)}
+        />
+      )}
+
+      {/* 3. Delivery Receipt / Sales Invoice (Printable A6 / A7 / K80 / A5) */}
+      {deliveryReceiptOrder && (
+        <DeliveryReceiptModal
+          order={deliveryReceiptOrder}
+          onClose={() => setDeliveryReceiptOrder(null)}
         />
       )}
 
@@ -256,6 +429,23 @@ export default function App() {
           initialQuoteData={quotePrefillData}
         />
       )}
+
+      {/* 4. Defect / Spoilage / Reprint Modal */}
+      {isDefectModalOpen && (
+        <DefectScrapModal
+          order={defectTargetOrder}
+          orders={orders}
+          products={products}
+          preselectedProductSku={defectTargetSku}
+          onClose={() => {
+            setIsDefectModalOpen(false);
+            setDefectTargetOrder(null);
+            setDefectTargetSku(undefined);
+          }}
+          onSubmitDefect={handleSubmitDefect}
+        />
+      )}
     </div>
   );
 }
+

@@ -18,7 +18,13 @@ import {
   Sparkles,
   Phone,
   Building2,
-  ExternalLink
+  ExternalLink,
+  Truck,
+  Copy,
+  Check,
+  Image as ImageIcon,
+  MapPin,
+  GripVertical
 } from 'lucide-react';
 import { Order, OrderStatus, PriorityLevel, PaymentStatus } from '../types';
 import {
@@ -28,6 +34,7 @@ import {
   getOrderStatusInfo,
   getPriorityInfo,
   getPaymentStatusInfo,
+  formatShippingInfoText,
 } from '../utils/formatters';
 
 interface OrdersViewProps {
@@ -36,6 +43,7 @@ interface OrdersViewProps {
   onUpdateOrderStatus: (orderId: string, newStatus: OrderStatus) => void;
   onOpenNewOrder: () => void;
   onPrintJobTicket: (order: Order) => void;
+  onPrintDeliveryReceipt?: (order: Order) => void;
 }
 
 const KANBAN_STAGES: { status: OrderStatus; label: string; desc: string; color: string }[] = [
@@ -53,14 +61,69 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
   onUpdateOrderStatus,
   onOpenNewOrder,
   onPrintJobTicket,
+  onPrintDeliveryReceipt,
 }) => {
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('table');
+  const [groupFilter, setGroupFilter] = useState<'all' | 'chuyen_nhiet' | 'in_anh_thuong'>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [searchFilter, setSearchFilter] = useState<string>('');
+  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+
+  // Drag and Drop State
+  const [draggedOrderId, setDraggedOrderId] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<OrderStatus | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, orderId: string) => {
+    e.dataTransfer.setData('text/plain', orderId);
+    setDraggedOrderId(orderId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = () => {
+    setDraggedOrderId(null);
+    setDragOverColumn(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, stageStatus: OrderStatus) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverColumn !== stageStatus) {
+      setDragOverColumn(stageStatus);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent, stageStatus: OrderStatus) => {
+    e.preventDefault();
+    // Only clear if leaving the column boundary
+    if (dragOverColumn === stageStatus) {
+      setDragOverColumn(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetStatus: OrderStatus) => {
+    e.preventDefault();
+    const orderId = e.dataTransfer.getData('text/plain') || draggedOrderId;
+    if (orderId) {
+      onUpdateOrderStatus(orderId, targetStatus);
+    }
+    setDraggedOrderId(null);
+    setDragOverColumn(null);
+  };
+
+  const handleCopyShipping = (e: React.MouseEvent, ord: Order) => {
+    e.stopPropagation();
+    const text = formatShippingInfoText(ord);
+    navigator.clipboard.writeText(text);
+    setCopiedOrderId(ord.id);
+    setTimeout(() => {
+      setCopiedOrderId(null);
+    }, 2000);
+  };
 
   // Filtered orders
   const filteredOrders = orders.filter((ord) => {
+    if (groupFilter !== 'all' && ord.serviceGroup !== groupFilter) return false;
     if (statusFilter !== 'all' && ord.status !== statusFilter) return false;
     if (priorityFilter !== 'all' && ord.priority !== priorityFilter) return false;
     if (searchFilter.trim() !== '') {
@@ -123,6 +186,40 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
 
       {/* Filters Bar */}
       <div className="flex flex-wrap items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+        {/* Service Group Filter Buttons */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          <button
+            onClick={() => setGroupFilter('all')}
+            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+              groupFilter === 'all'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+            }`}
+          >
+            Tất Cả ({orders.length})
+          </button>
+          <button
+            onClick={() => setGroupFilter('chuyen_nhiet')}
+            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+              groupFilter === 'chuyen_nhiet'
+                ? 'bg-amber-500 text-white shadow-xs'
+                : 'text-slate-500 hover:text-amber-600'
+            }`}
+          >
+            🔥 Chuyển Nhiệt
+          </button>
+          <button
+            onClick={() => setGroupFilter('in_anh_thuong')}
+            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+              groupFilter === 'in_anh_thuong'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-500 hover:text-blue-600'
+            }`}
+          >
+            📸 In Ảnh & Nhãn
+          </button>
+        </div>
+
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -171,10 +268,19 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4 items-start">
           {KANBAN_STAGES.map((col) => {
             const stageOrders = filteredOrders.filter((o) => o.status === col.status);
+            const isColumnTarget = dragOverColumn === col.status;
+
             return (
               <div
                 key={col.status}
-                className="bg-slate-100/70 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800/80 p-3 flex flex-col min-h-[480px]"
+                onDragOver={(e) => handleDragOver(e, col.status)}
+                onDragLeave={(e) => handleDragLeave(e, col.status)}
+                onDrop={(e) => handleDrop(e, col.status)}
+                className={`rounded-2xl border p-3 flex flex-col min-h-[500px] transition-all ${
+                  isColumnTarget
+                    ? 'bg-blue-50/90 dark:bg-blue-950/50 border-blue-400 dark:border-blue-500 ring-2 ring-blue-400/50 shadow-md scale-[1.01]'
+                    : 'bg-slate-100/70 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800/80'
+                }`}
               >
                 {/* Column Header */}
                 <div className={`border-t-4 ${col.color} pt-2 pb-3 mb-2 px-1`}>
@@ -191,57 +297,112 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                   </p>
                 </div>
 
+                {/* Drop Indicator placeholder when dragging over empty space */}
+                {isColumnTarget && draggedOrderId && (
+                  <div className="mb-2 p-2 rounded-xl border-2 border-dashed border-blue-400 bg-blue-100/60 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200 text-[11px] font-bold text-center animate-pulse">
+                    Thả đơn vào đây
+                  </div>
+                )}
+
                 {/* Orders Stack in this column */}
                 <div className="space-y-3 flex-1 overflow-y-auto max-h-[75vh] custom-scrollbar pr-0.5">
                   {stageOrders.length === 0 ? (
                     <div className="py-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500">Chưa có đơn ở công đoạn này</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500">Kéo thả đơn vào đây</p>
                     </div>
                   ) : (
                     stageOrders.map((ord) => {
                       const priorityInfo = getPriorityInfo(ord.priority);
                       const paymentInfo = getPaymentStatusInfo(ord.paymentStatus);
+                      const mainItem = ord.items[0];
+                      const isCopied = copiedOrderId === ord.id;
+                      const isBeingDragged = draggedOrderId === ord.id;
+
                       return (
                         <div
                           key={ord.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, ord.id)}
+                          onDragEnd={handleDragEnd}
                           onClick={() => onSelectOrder(ord)}
-                          className="p-3.5 bg-white dark:bg-slate-800/90 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer group"
+                          className={`p-3 bg-white dark:bg-slate-800/90 rounded-xl border shadow-xs transition-all cursor-grab active:cursor-grabbing group ${
+                            isBeingDragged
+                              ? 'opacity-40 scale-95 border-blue-500 ring-2 ring-blue-400 shadow-lg'
+                              : 'border-slate-200/80 dark:border-slate-700/80 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700'
+                          }`}
                         >
-                          {/* Order Code & Priority Tag */}
-                          <div className="flex items-center justify-between gap-1.5 mb-2">
-                            <span className="font-bold text-xs text-blue-600 dark:text-blue-400 group-hover:underline">
-                              {ord.orderCode}
-                            </span>
-                            {ord.priority !== 'binh_thuong' && (
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${priorityInfo.badge}`}>
-                                {priorityInfo.label}
+                          {/* Order Code & Priority Tag & Quick Copy */}
+                          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span className="text-slate-300 dark:text-slate-600 group-hover:text-blue-500 transition-colors" title="Kéo thả thẻ đơn hàng">
+                                <GripVertical className="w-3.5 h-3.5" />
                               </span>
-                            )}
+                              <span className="font-bold text-xs text-blue-600 dark:text-blue-400 group-hover:underline truncate">
+                                {ord.orderCode}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {ord.priority !== 'binh_thuong' && (
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${priorityInfo.badge}`}>
+                                  {priorityInfo.label}
+                                </span>
+                              )}
+                              <button
+                                onClick={(e) => handleCopyShipping(e, ord)}
+                                className={`p-1 rounded-md transition-all ${
+                                  isCopied
+                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                    : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700'
+                                }`}
+                                title="Copy thông tin gửi ship nhanh"
+                              >
+                                {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
                           </div>
 
-                          {/* Customer Name */}
-                          <p className="font-semibold text-xs text-slate-900 dark:text-white line-clamp-1">
-                            {ord.customerCompany || ord.customerName}
-                          </p>
-
-                          {/* Primary Item Preview */}
-                          <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-900/60 rounded-lg border border-slate-100 dark:border-slate-800">
-                            <p className="text-[11px] font-medium text-slate-800 dark:text-slate-200 line-clamp-1">
-                              {ord.items[0]?.productName}
+                          {/* Customer Name & Phone */}
+                          <div className="mb-2">
+                            <p className="font-semibold text-xs text-slate-900 dark:text-white line-clamp-1">
+                              {ord.customerCompany || ord.customerName}
                             </p>
-                            <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                              <span className="font-bold text-slate-900 dark:text-white">
-                                SL: {ord.items[0]?.quantity} chiếc
-                              </span>
-                              <span className="font-semibold text-blue-600 dark:text-blue-400">
-                                {formatCurrency(ord.totalAmount)}
-                              </span>
+                            <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                              <Phone className="w-2.5 h-2.5" /> {ord.customerPhone}
+                            </p>
+                          </div>
+
+                          {/* Primary Item Preview with Thumbnail */}
+                          <div className="p-2 bg-slate-50 dark:bg-slate-900/60 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
+                            {mainItem?.mockupUrl ? (
+                              <img
+                                src={mainItem.mockupUrl}
+                                alt={mainItem.productName}
+                                className="w-12 h-12 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-2xs"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
+                                <ImageIcon className="w-5 h-5" />
+                              </div>
+                            )}
+
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-medium text-slate-800 dark:text-slate-200 line-clamp-1 leading-tight">
+                                {mainItem?.productName}
+                              </p>
+                              <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                                <span className="font-bold text-slate-900 dark:text-white text-[10px]">
+                                  SL: {mainItem?.quantity} chiếc
+                                </span>
+                                <span className="font-bold text-blue-600 dark:text-blue-400 text-[11px]">
+                                  {formatCurrency(ord.totalAmount)}
+                                </span>
+                              </div>
                             </div>
                           </div>
 
                           {/* Print Technique & Positions */}
                           <div className="mt-2 flex flex-wrap gap-1">
-                            {ord.items[0]?.printPositions.map((pos) => (
+                            {mainItem?.printPositions.map((pos) => (
                               <span
                                 key={pos.id}
                                 className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium"
@@ -252,13 +413,26 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                           </div>
 
                           {/* Footer: Deadline & Action */}
-                          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[11px]">
+                          <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[11px]">
                             <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
                               <Calendar className="w-3 h-3" />
                               <span>{formatDate(ord.deadline)}</span>
                             </div>
 
                             <div className="flex items-center gap-1">
+                              {onPrintDeliveryReceipt && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onPrintDeliveryReceipt(ord);
+                                  }}
+                                  className="p-1 rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                                  title="Xuất phiếu giao hàng A6/A7"
+                                >
+                                  <Truck className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -303,14 +477,15 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
                 <tr>
+                  <th className="py-3 px-3 w-16 text-center">Ảnh In / Mockup</th>
                   <th className="py-3 px-4">Mã Đơn</th>
-                  <th className="py-3 px-4">Khách Hàng / Công Ty</th>
+                  <th className="py-3 px-4">Khách Hàng / Gửi Ship</th>
                   <th className="py-3 px-4">Sản Phẩm & Phôi Quà Tặng</th>
                   <th className="py-3 px-4">Công Nghệ In</th>
                   <th className="py-3 px-4">Tổng Tiền / Thanh Toán</th>
                   <th className="py-3 px-4">Tiến Độ Xưởng</th>
                   <th className="py-3 px-4">Hạn Giao</th>
-                  <th className="py-3 px-4 text-right">Lệnh Xưởng</th>
+                  <th className="py-3 px-4 text-right">Lệnh & Giao Hàng</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -318,13 +493,39 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                   const statusInfo = getOrderStatusInfo(ord.status);
                   const priorityInfo = getPriorityInfo(ord.priority);
                   const paymentInfo = getPaymentStatusInfo(ord.paymentStatus);
+                  const mainItem = ord.items[0];
+                  const isCopied = copiedOrderId === ord.id;
+
                   return (
                     <tr
                       key={ord.id}
                       onClick={() => onSelectOrder(ord)}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
                     >
-                      <td className="py-3.5 px-4 font-bold text-blue-600 dark:text-blue-400">
+                      {/* Thumbnail Image Column */}
+                      <td className="py-2.5 px-3 text-center">
+                        <div className="relative inline-block group/thumb">
+                          {mainItem?.mockupUrl ? (
+                            <img
+                              src={mainItem.mockupUrl}
+                              alt={mainItem.productName}
+                              className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs group-hover/thumb:scale-105 transition-transform"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400">
+                              <ImageIcon className="w-5 h-5" />
+                            </div>
+                          )}
+                          {ord.items.length > 1 && (
+                            <span className="absolute -bottom-1 -right-1 bg-indigo-600 text-white text-[9px] font-bold px-1 rounded-full border border-white dark:border-slate-900">
+                              +{ord.items.length - 1}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Order Code */}
+                      <td className="py-3.5 px-4 font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                         {ord.orderCode}
                         {ord.priority !== 'binh_thuong' && (
                           <div className={`mt-1 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border ${priorityInfo.badge}`}>
@@ -332,31 +533,71 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                           </div>
                         )}
                       </td>
+
+                      {/* Customer & Shipping Quick Copy */}
                       <td className="py-3.5 px-4">
-                        <p className="font-bold text-slate-900 dark:text-white">
-                          {ord.customerCompany || ord.customerName}
-                        </p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-                          <Phone className="w-3 h-3" /> {ord.customerPhone}
-                        </p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-white">
+                              {ord.customerCompany || ord.customerName}
+                            </p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                              <Phone className="w-3 h-3" /> {ord.customerPhone}
+                            </p>
+                            {ord.shippingAddress && (
+                              <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5 max-w-[180px]" title={ord.shippingAddress}>
+                                {ord.shippingAddress}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Quick Copy Ship Button */}
+                          <button
+                            onClick={(e) => handleCopyShipping(e, ord)}
+                            className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 shrink-0 border ${
+                              isCopied
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
+                                : 'bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 dark:border-slate-700'
+                            }`}
+                            title="1 Click copy thông tin: Tên, SĐT, Địa chỉ, Tiền COD, Ghi chú"
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Đã Copy!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5 text-blue-600" />
+                                <span>Copy Ship</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </td>
+
+                      {/* Product Name & Quantity */}
                       <td className="py-3.5 px-4">
-                        <p className="font-medium text-slate-800 dark:text-slate-200">
-                          {ord.items[0]?.productName}
+                        <p className="font-semibold text-slate-800 dark:text-slate-200 line-clamp-2 max-w-[220px]">
+                          {mainItem?.productName}
                         </p>
-                        <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">
-                          Số lượng: {ord.items[0]?.quantity} chiếc
+                        <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5 block">
+                          Số lượng: {mainItem?.quantity} chiếc
                         </span>
                       </td>
+
+                      {/* Techniques */}
                       <td className="py-3.5 px-4">
-                        <div className="flex flex-col gap-1">
-                          {ord.items[0]?.printPositions.map((p) => (
-                            <span key={p.id} className="text-[11px] text-slate-600 dark:text-slate-300">
+                        <div className="flex flex-col gap-1 max-w-[180px]">
+                          {mainItem?.printPositions.map((p) => (
+                            <span key={p.id} className="text-[11px] text-slate-600 dark:text-slate-300 truncate">
                               • {p.name}: <strong className="uppercase">{p.technique}</strong>
                             </span>
                           ))}
                         </div>
                       </td>
+
+                      {/* Financials */}
                       <td className="py-3.5 px-4">
                         <p className="font-bold text-slate-900 dark:text-white">
                           {formatCurrency(ord.totalAmount)}
@@ -365,25 +606,44 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                           {paymentInfo.label}
                         </span>
                       </td>
+
+                      {/* Pipeline Status */}
                       <td className="py-3.5 px-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${statusInfo.bg} ${statusInfo.text} ${statusInfo.border}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot}`} />
                           {statusInfo.label}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 font-medium">
+
+                      {/* Deadline */}
+                      <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 font-medium whitespace-nowrap">
                         {formatDate(ord.deadline)}
                       </td>
+
+                      {/* Quick Actions */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {onPrintDeliveryReceipt && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onPrintDeliveryReceipt(ord);
+                              }}
+                              className="px-2 py-1 text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 hover:bg-rose-100 rounded-lg transition-colors flex items-center gap-1 border border-rose-200 dark:border-rose-900"
+                              title="Xuất phiếu giao hàng A6/A7/K80"
+                            >
+                              <Truck className="w-3.5 h-3.5 text-rose-600" /> Phiếu Giao
+                            </button>
+                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               onPrintJobTicket(ord);
                             }}
-                            className="px-2 py-1 text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-1"
+                            className="px-2 py-1 text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-1 border border-slate-200 dark:border-slate-700"
+                            title="In phiếu lệnh sản xuất xưởng"
                           >
-                            <FileText className="w-3.5 h-3.5" /> Phiếu Lệnh
+                            <FileText className="w-3.5 h-3.5" /> Lệnh
                           </button>
                         </div>
                       </td>
