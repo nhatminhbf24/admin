@@ -148,7 +148,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   // 1. IN CHUYỂN NHIỆT - LY SỨ CÁC LOẠI
   {
     id: 'prod-cn-1',
-    name: 'Ly Sứ Trắng Quai Tròn 350ml Phủ Men In Chuyển Nhiệt',
+    name: 'Ly Trắng Thường',
     category: 'ly_su',
     serviceGroup: 'chuyen_nhiet',
     sku: 'LYSU-TRANG-TRON-350',
@@ -171,7 +171,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   },
   {
     id: 'prod-cn-1b',
-    name: 'Ly Sứ Trắng Quai Tim Tình Nhân Phủ Men In Nhiệt',
+    name: 'Ly Trắng Quai Tim',
     category: 'ly_su',
     serviceGroup: 'chuyen_nhiet',
     sku: 'LYSU-QUAI-TIM-350',
@@ -194,7 +194,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   },
   {
     id: 'prod-cn-1c',
-    name: 'Ly Sứ Đổi Màu Cảm Ứng Nhiệt Magic Mug (Đen Sang Trắng Khi Rót Nước Nóng)',
+    name: 'Ly Đổi Màu Magic',
     category: 'ly_su',
     serviceGroup: 'chuyen_nhiet',
     sku: 'LYSU-DOI-MAU-MAGIC',
@@ -219,7 +219,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   // PHÔI MÓC KHÓA (MICA VUÔNG/TRÒN/TIM & PHÔI GỖ)
   {
     id: 'prod-cn-2',
-    name: 'Phôi Móc Khóa Mica Trong Suốt (Mica Vuông 5x5 / Tròn D5 / Trái Tim)',
+    name: 'Móc Khóa Mica',
     category: 'moc_khoa',
     serviceGroup: 'chuyen_nhiet',
     sku: 'PHOI-MK-MICA-SET',
@@ -242,7 +242,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   },
   {
     id: 'prod-cn-2b',
-    name: 'Phôi Móc Khóa Gỗ MDF Phủ Men Chuyển Nhiệt 2 Mặt Chống Trầy',
+    name: 'Móc Khóa Gỗ MDF',
     category: 'moc_khoa',
     serviceGroup: 'chuyen_nhiet',
     sku: 'PHOI-MK-GO-2M',
@@ -267,7 +267,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   // HUY HIỆU
   {
     id: 'prod-cn-3',
-    name: 'Huy Hiệu Cài Áo / Huy Hiệu Mở Bia / Nam Châm Dán Tủ Lạnh',
+    name: 'Huy Hiệu Cài Áo',
     category: 'huy_hieu',
     serviceGroup: 'chuyen_nhiet',
     sku: 'HH-KB-44-58',
@@ -285,7 +285,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   // PHÔI ĐỒNG HỒ TRÁNG GƯƠNG & ĐỒNG HỒ GỖ
   {
     id: 'prod-cn-4',
-    name: 'Phôi Đồng Hồ Tráng Gương / Pha Lê Tráng Bạc Kèm Máy Kim Trôi',
+    name: 'Đồng Hồ Tráng Gương',
     category: 'dong_ho',
     serviceGroup: 'chuyen_nhiet',
     sku: 'PHOI-DH-TRANG-GUONG',
@@ -308,7 +308,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   },
   {
     id: 'prod-cn-4b',
-    name: 'Phôi Đồng Hồ Gỗ MDF Phủ Men In Nhiệt Để Bàn & Treo Tường 20x20cm',
+    name: 'Đồng Hồ Gỗ MDF',
     category: 'dong_ho',
     serviceGroup: 'chuyen_nhiet',
     sku: 'PHOI-DH-GO-20',
@@ -333,7 +333,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   // ÁO THUN
   {
     id: 'prod-cn-5',
-    name: 'Áo Thun Poly / Thun Lạnh Co Giãn In Chuyển Nhiệt Không Phai Màu',
+    name: 'Áo Thun Poly In',
     category: 'ao_thun',
     serviceGroup: 'chuyen_nhiet',
     sku: 'AT-POLY-IN',
@@ -358,7 +358,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   // BÌNH GIỮ NHIỆT
   {
     id: 'prod-cn-6',
-    name: 'Bình Giữ Nhiệt Inox 500ml Phủ Men In Chuyển Nhiệt',
+    name: 'Bình Giữ Nhiệt 500ml',
     category: 'binh_giu_nhiet',
     serviceGroup: 'chuyen_nhiet',
     sku: 'BGN-IN-500W',
@@ -383,7 +383,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   // KỶ NIỆM CHƯƠNG PHA LÊ
   {
     id: 'prod-cn-7',
-    name: 'Kỷ Niệm Chương / Pha Lê Vát Cạnh In Nhiệt Kèm Đế Sang Trọng',
+    name: 'Kỷ Niệm Chương Pha Lê',
     category: 'ky_niem_chuong',
     serviceGroup: 'chuyen_nhiet',
     sku: 'PL-IN-KNC',
@@ -408,7 +408,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   // PHÔI MẶT ĐÁ IN ẢNH CÁC SIZE (15x15, 20x20, 20x30)
   {
     id: 'prod-cn-8',
-    name: 'Phôi Mặt Đá Tự Nhiên In Ảnh Chuyển Nhiệt Khổ 15x15cm Vuông (SH-15)',
+    name: 'Tranh Đá Vuông 15x15',
     category: 'tranh_da',
     serviceGroup: 'chuyen_nhiet',
     sku: 'PHOI-DA-1515',
@@ -431,7 +431,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   },
   {
     id: 'prod-cn-8b',
-    name: 'Phôi Mặt Đá Tự Nhiên In Ảnh Chuyển Nhiệt Khổ 20x20cm / 20x30cm (SH-20 / SH-25)',
+    name: 'Tranh Đá Khổ 20x20',
     category: 'tranh_da',
     serviceGroup: 'chuyen_nhiet',
     sku: 'PHOI-DA-2020',
@@ -456,7 +456,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   // TRANH GHÉP
   {
     id: 'prod-cn-9',
-    name: 'Tranh Ghép Xếp Hình (Puzzle) In Hình Theo Yêu Cầu',
+    name: 'Tranh Ghép Puzzle',
     category: 'tranh_ghep',
     serviceGroup: 'chuyen_nhiet',
     sku: 'TG-PZ-A4',
@@ -481,7 +481,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   // TÚI VẢI CANVAS & BÓP BÚT
   {
     id: 'prod-cn-10',
-    name: 'Túi Vải Canvas / Túi Tote Dây Kéo In Chuyển Nhiệt Sắc Nét',
+    name: 'Túi Vải Canvas Tote',
     category: 'tui_vai',
     serviceGroup: 'chuyen_nhiet',
     sku: 'TUI-TOTE-CV',
@@ -504,7 +504,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   },
   {
     id: 'prod-cn-11',
-    name: 'Bóp Bút 3D / Hộp Bút Học Sinh In Hình Nổi Theo Yêu Cầu',
+    name: 'Bóp Bút Học Sinh 3D',
     category: 'bop_but_3d',
     serviceGroup: 'chuyen_nhiet',
     sku: 'BPB-3D-HS',
@@ -529,7 +529,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   // 2. IN ẢNH THƯỜNG & NHÃN VỞ & KHUNG ẢNH CÁC SIZE
   {
     id: 'prod-ia-1',
-    name: 'In Nhãn Vở Thiết Kế Theo Yêu Cầu (Kèm Ảnh Bé / Tên Trường / Lớp)',
+    name: 'Nhãn Vở Theo Yêu Cầu',
     category: 'in_nhan_vo',
     serviceGroup: 'in_anh_thuong',
     sku: 'NV-SET-DECAL',
@@ -550,7 +550,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   },
   {
     id: 'prod-ia-2',
-    name: 'In Ảnh Kỷ Niệm (Polaroid / 6x9 / 10x15 / Ép Lụa / Ép Plastic)',
+    name: 'Ảnh Kỷ Niệm Polaroid',
     category: 'anh_ky_niem',
     serviceGroup: 'in_anh_thuong',
     sku: 'ANH-LAB-PHOTO',
@@ -573,7 +573,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   // KHUNG ẢNH CÁC KÍCH THƯỚC (13x18, 15x21, 20x30...)
   {
     id: 'prod-ia-3a',
-    name: 'Khung Ảnh Composite Để Bàn Vân Gỗ Size 13x18cm (5R)',
+    name: 'Khung Ảnh Gỗ 13x18',
     category: 'khung_anh',
     serviceGroup: 'in_anh_thuong',
     sku: 'KHUNG-CP-1318',
@@ -594,7 +594,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   },
   {
     id: 'prod-ia-3b',
-    name: 'Khung Ảnh Composite Để Bàn Vân Gỗ Size 15x21cm (A5)',
+    name: 'Khung Ảnh Gỗ 15x21',
     category: 'khung_anh',
     serviceGroup: 'in_anh_thuong',
     sku: 'KHUNG-CP-1521',
@@ -615,7 +615,7 @@ export const INITIAL_PRODUCTS: GiftProduct[] = [
   },
   {
     id: 'prod-ia-3c',
-    name: 'Khung Ảnh Gỗ Tự Nhiên Treo Tường / Để Bàn Size 20x30cm (A4)',
+    name: 'Khung Ảnh Gỗ 20x30',
     category: 'khung_anh',
     serviceGroup: 'in_anh_thuong',
     sku: 'KHUNG-GO-2030',
@@ -681,7 +681,7 @@ export const INITIAL_DEFECT_LOGS: DefectLog[] = [
     orderId: 'ord-102',
     orderCode: 'GIFT-2608-02',
     productId: 'prod-cn-1',
-    productName: 'Ly Sứ Trắng Quai Tròn 350ml Phủ Men In Chuyển Nhiệt',
+    productName: 'Ly Trắng Thường',
     sku: 'LYSU-TRANG-TRON-350',
     quantityScrapped: 2,
     reason: 'chay_mau_nhiet',
@@ -696,7 +696,7 @@ export const INITIAL_DEFECT_LOGS: DefectLog[] = [
     orderId: 'ord-103',
     orderCode: 'GIFT-2608-03',
     productId: 'prod-cn-8b',
-    productName: 'Phôi Mặt Đá Tự Nhiên In Ảnh Chuyển Nhiệt Khổ 20x20cm (SH-20)',
+    productName: 'Tranh Đá Khổ 20x20',
     sku: 'PHOI-DA-2020',
     quantityScrapped: 1,
     reason: 'vo_nut_phoi',
@@ -711,7 +711,7 @@ export const INITIAL_DEFECT_LOGS: DefectLog[] = [
     orderId: 'ord-101',
     orderCode: 'GIFT-2608-01',
     productId: 'prod-ia-1',
-    productName: 'In Nhãn Vở Thiết Kế Theo Yêu Cầu (Kèm Ảnh Bé)',
+    productName: 'Nhãn Vở Theo Yêu Cầu',
     sku: 'NV-SET-DECAL',
     quantityScrapped: 2,
     reason: 'lech_tam_khuon',
@@ -765,7 +765,7 @@ export const INITIAL_ORDERS: Order[] = [
     items: [
       {
         id: 'item-101-1',
-        productName: 'In Nhãn Vở Thiết Kế Theo Yêu Cầu (Kèm Ảnh Bé / Tên Trường / Lớp)',
+        productName: 'Nhãn Vở Theo Yêu Cầu',
         sku: 'NV-SET-DECAL',
         category: 'in_nhan_vo',
         serviceGroup: 'in_anh_thuong',
@@ -832,7 +832,7 @@ export const INITIAL_ORDERS: Order[] = [
     items: [
       {
         id: 'item-102-1',
-        productName: 'Ly Sứ Trắng Tráng Men Phủ Hóa Chất Chuyển Nhiệt 350ml',
+        productName: 'Ly Trắng Thường',
         sku: 'LYSU-TRANG-350',
         category: 'ly_su',
         serviceGroup: 'chuyen_nhiet',
@@ -860,7 +860,7 @@ export const INITIAL_ORDERS: Order[] = [
       },
       {
         id: 'item-102-2',
-        productName: 'Móc Khóa Mica / Gỗ In Chuyển Nhiệt 2 Mặt Theo Yêu Cầu',
+        productName: 'Móc Khóa Mica',
         sku: 'MK-MICA-2M',
         category: 'moc_khoa',
         serviceGroup: 'chuyen_nhiet',
@@ -927,7 +927,7 @@ export const INITIAL_ORDERS: Order[] = [
     items: [
       {
         id: 'item-103-1',
-        productName: 'Tranh Đá Tự Nhiên Vát Viền Thô In Chuyển Nhiệt Kèm Chân Đế',
+        productName: 'Tranh Đá Khổ 20x20',
         sku: 'TD-SH-2015',
         category: 'tranh_da',
         serviceGroup: 'chuyen_nhiet',
@@ -992,7 +992,7 @@ export const INITIAL_ORDERS: Order[] = [
     items: [
       {
         id: 'item-104-1',
-        productName: 'In Ảnh Kỷ Niệm (Polaroid / 6x9 / 10x15 / Ép Lụa / Ép Plastic)',
+        productName: 'Ảnh Kỷ Niệm Polaroid',
         sku: 'ANH-LAB-PHOTO',
         category: 'anh_ky_niem',
         serviceGroup: 'in_anh_thuong',
@@ -1050,7 +1050,7 @@ export const INITIAL_ORDERS: Order[] = [
     items: [
       {
         id: 'item-105-1',
-        productName: 'Bình Giữ Nhiệt Inox 304 Phủ Men Chuyển Nhiệt 500ml Kèm Hộp Quà',
+        productName: 'Bình Giữ Nhiệt 500ml',
         sku: 'BGN-MEN-500',
         category: 'binh_giu_nhiet',
         serviceGroup: 'chuyen_nhiet',

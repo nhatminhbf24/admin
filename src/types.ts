@@ -136,6 +136,7 @@ export interface Order {
   vatAmount?: number; // Tiền thuế VAT (VNĐ)
   urgentFee?: number; // Phụ phí in hỏa tốc (+20%)
   productionNotes?: string;
+  productionNotesUpdatedAt?: string; // Thời gian cập nhật ghi chú gần nhất
   proofDesign?: ProofDesignInfo;
   shippingInfo?: ShippingTrackingInfo;
 }

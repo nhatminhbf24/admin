@@ -345,12 +345,21 @@ export default function App() {
   };
 
   // Handler: Update order notes / description
-  const handleUpdateOrderNotes = (orderId: string, productionNotes: string) => {
+  const handleUpdateOrderNotes = (orderId: string, productionNotes: string, updatedAt?: string) => {
+    const noteTime = updatedAt || new Date().toISOString();
     setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, productionNotes } : o))
+      prev.map((o) =>
+        o.id === orderId
+          ? { ...o, productionNotes, productionNotesUpdatedAt: noteTime }
+          : o
+      )
     );
     if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder((prev) => (prev ? { ...prev, productionNotes } : null));
+      setSelectedOrder((prev) =>
+        prev
+          ? { ...prev, productionNotes, productionNotesUpdatedAt: noteTime }
+          : null
+      );
     }
   };
 
@@ -368,6 +377,16 @@ export default function App() {
     );
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder((prev) => (prev ? { ...prev, ...customerData } : null));
+    }
+  };
+
+  // Handler: Update order delivery deadline
+  const handleUpdateOrderDeadline = (orderId: string, deadline: string) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, deadline } : o))
+    );
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder((prev) => (prev ? { ...prev, deadline } : null));
     }
   };
 
@@ -443,9 +462,14 @@ export default function App() {
   };
 
   // Handler: Create order directly from Pricing Calculator
-  const handleCreateOrderFromQuote = (quoteData: any) => {
-    setQuotePrefillData(quoteData);
-    setIsNewOrderModalOpen(true);
+  const handleCreateOrderFromQuote = (orderOrQuoteData: any) => {
+    if (orderOrQuoteData?.orderCode && orderOrQuoteData?.items) {
+      handleSaveNewOrder(orderOrQuoteData);
+      setActiveTab('orders');
+    } else {
+      setQuotePrefillData(orderOrQuoteData);
+      setIsNewOrderModalOpen(true);
+    }
   };
 
   // Handler: Add product
@@ -703,6 +727,7 @@ export default function App() {
           onUpdateStatus={handleUpdateOrderStatus}
           onUpdatePayment={handleUpdatePaymentStatus}
           onUpdateNotes={handleUpdateOrderNotes}
+          onUpdateDeadline={handleUpdateOrderDeadline}
           onUpdateCustomerInfo={handleUpdateCustomerInfo}
           onUpdatePricing={handleUpdateOrderPricing}
           onUpdateProofDesign={handleUpdateProofDesign}
